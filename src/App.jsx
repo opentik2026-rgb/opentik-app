@@ -15,22 +15,19 @@ import {
   CheckCircle2,
   X, 
   Eye, 
-  Clock, 
-  Phone, 
   DollarSign, 
   Layers, 
-  Send, 
-  Award,
-  MessageCircle,
-  Database,
-  PhoneCall,
-  Save,
-  Settings,
-  FileCheck,
-  Share2,
-  Building,
-  Briefcase
+  MessageCircle, 
+  Settings, 
+  FileCheck, 
+  Share2, 
+  Save 
 } from 'lucide-react';
+
+// استدعاء مكتبات أندرويد الأصلية للملفات والمشاركة
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -38,6 +35,7 @@ export default function App() {
   const [filterSystem, setFilterSystem] = useState('all');
   const [currencyMode, setCurrencyMode] = useState('USD');
   const [toast, setToast] = useState(null);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const showNotification = (msg) => {
     setToast(msg);
@@ -62,7 +60,7 @@ export default function App() {
     };
   });
 
-  // بيانات العملاء
+  // العملاء
   const [clients, setClients] = useState(() => {
     const saved = localStorage.getItem('opentik_clients');
     return saved ? JSON.parse(saved) : [
@@ -103,19 +101,16 @@ export default function App() {
     ];
   });
 
-  // عروض الأسعار
   const [quotations, setQuotations] = useState(() => {
     const saved = localStorage.getItem('opentik_quotations');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // سندات القبض
   const [vouchers, setVouchers] = useState(() => {
     const saved = localStorage.getItem('opentik_vouchers');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // باقات OpenTik
   const packages = [
     {
       id: 'PKG-01',
@@ -152,13 +147,12 @@ export default function App() {
   useEffect(() => { localStorage.setItem('opentik_vouchers', JSON.stringify(vouchers)); }, [vouchers]);
 
   // النوافذ
-  const [viewClientDetails, setViewClientDetails] = useState(null);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [creatingQuotation, setCreatingQuotation] = useState(false);
   const [creatingVoucher, setCreatingVoucher] = useState(null);
   const [newClientModal, setNewClientModal] = useState(false);
-  const [autoActionModal, setAutoActionModal] = useState(null); // { type: 'invoice'|'voucher'|'quotation', data: {...} }
+  const [autoActionModal, setAutoActionModal] = useState(null);
 
   // النماذج
   const [newClientForm, setNewClientForm] = useState({ name: '', contactPerson: '', phone: '', address: '', system: 'كاميرات مراقبة وشبكات', warrantyExpiry: '2027-09-15', devices: '' });
@@ -188,132 +182,146 @@ export default function App() {
     return '$' + amountUSD.toLocaleString();
   };
 
-  // التأكد من جاهزية محرك الـ PDF
-  const ensureHtml2Pdf = () => {
+  // التأكد من تحميل محرك html2pdf
+  const loadHtml2PdfEngine = () => {
     return new Promise((resolve) => {
       if (window.html2pdf) return resolve(window.html2pdf);
       const script = document.createElement('script');
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
       script.onload = () => resolve(window.html2pdf);
-      script.onerror = () => {
-        alert('تعذر تحميل مكتبة الـ PDF عبر الإنترنت، يرجى التأكد من اتصال الإنترنت.');
-        resolve(null);
-      };
+      script.onerror = () => resolve(null);
       document.head.appendChild(script);
     });
   };
 
-  // ================= 1. تصدير وتنزيل PDF المضمون =================
-  const handleDownloadPDF = async () => {
-    if (!autoActionModal || !autoActionModal.data) return;
-    showNotification('جاري بناء وتنزيل ملف PDF...');
-    const h2p = await ensureHtml2Pdf();
-    if (!h2p) return;
+  // توليد كود Base64 لملف الـ PDF
+  const generatePdfBase64 = async () => {
+    const h2p = await loadHtml2PdfEngine();
+    if (!h2p) {
+      alert('يرجى التحقق من اتصال الإنترنت لتحميل محرك الـ PDF.');
+      return null;
+    }
 
     const element = document.getElementById('unified-printable-document');
     if (!element) {
-      alert('حدث خطأ في تحميل قالب المستند.');
-      return;
+      alert('لم يتم العثور على قالب المستند.');
+      return null;
     }
-
-    const doc = autoActionModal.data;
-    const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'OpenTik');
 
     const opt = {
       margin: 8,
-      filename: fileName + '.pdf',
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, logging: false },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    try {
-      await h2p().set(opt).from(element).save();
-      showNotification('تم تنزيل ملف PDF وحفظه في جهازك بنجاح 📄');
-    } catch (err) {
-      alert('خطأ أثناء حفظ الملف: ' + err.message);
-    }
+    // استخراج Base64
+    const dataUri = await h2p().set(opt).from(element).outputPdf('datauristring');
+    return dataUri.split(',')[1];
   };
 
-  // ================= 2. إرسال ملف PDF الفعلي عبر واتساب الأعمال / العادي =================
+  // ================= 1. مشاركة وإرسال ملف الـ PDF كملف حقيقي في واتساب =================
   const handleSharePdfToWhatsApp = async () => {
-    if (!autoActionModal || !autoActionModal.data) return;
-    showNotification('جاري تجهيز وتوليد ملف PDF للمشاركة...');
-    const h2p = await ensureHtml2Pdf();
-    if (!h2p) return;
-
-    const element = document.getElementById('unified-printable-document');
-    if (!element) {
-      alert('حدث خطأ في تحميل قالب المستند.');
-      return;
-    }
-
-    const doc = autoActionModal.data;
-    const isInv = autoActionModal.type === 'invoice';
-    const isVoucher = autoActionModal.type === 'voucher';
-    const fileName = (doc.id || 'OpenTik') + '.pdf';
-
-    const opt = {
-      margin: 8,
-      filename: fileName,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    if (!autoActionModal || !autoActionModal.data || isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    showNotification('جاري توليد ملف الـ PDF وإرفاقه...');
 
     try {
-      // توليد ملف الـ PDF كملف ثنائي حقيقي في الذاكرة
-      const pdfBlob = await h2p().set(opt).from(element).outputPdf('blob');
-      const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
-
-      // نص ملخص مرفق
-      let msgText = '';
-      if (isInv) {
-        const tot = calculateFinalTotal(doc);
-        const rem = tot - (doc.paid || 0);
-        msgText = 'مرحباً بالعميل العزيز: ' + doc.client + '\n' +
-                  'مرفق لكم الفاتورة الرسمية PDF رقم ' + doc.id + '\n' +
-                  'الإجمالي: $' + tot + ' | المسدد: $' + (doc.paid || 0) + ' | المتبقي: $' + rem + '\n' +
-                  'شركة OpenTik للأنظمة الذكية 🛡️';
-      } else if (isVoucher) {
-        msgText = 'سند قبض مالي معتمد رقم ' + doc.id + '\n' +
-                  'استلمنا من: ' + doc.client + ' مبلغ: $' + doc.amount + '\n' +
-                  'شركة OpenTik للأنظمة الذكية 🛡️';
-      } else {
-        msgText = 'عرض سعر رسمي معتمد رقم ' + doc.id + '\n' +
-                  'مقدم إلى: ' + doc.client + '\n' +
-                  'شركة OpenTik للأنظمة الذكية 🛡️';
+      const base64Data = await generatePdfBase64();
+      if (!base64Data) {
+        setIsGeneratingPdf(false);
+        return;
       }
 
-      // إرسال الملف مباشرة عبر نافذة مشاركة أندرويد
-      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-        await navigator.share({
-          files: [pdfFile],
-          title: 'فاتورة رسمية - OpenTik',
-          text: msgText
+      const doc = autoActionModal.data;
+      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client') + '.pdf';
+
+      if (Capacitor.isNativePlatform()) {
+        // حفظ الملف في ذاكرة الكاش الخاصة بالنظام
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Cache
         });
-        showNotification('تم فتح واتساب وإرفاق ملف PDF بنجاح ✔️');
+
+        // فتح نافذة مشاركة أندرويد مع إرفاق الـ PDF الفعلي
+        await Share.share({
+          title: 'فاتورة رسمية - ' + doc.id,
+          text: 'مرفق لكم الفاتورة الرسمية PDF من ' + systemSettings.companyName,
+          url: savedFile.uri,
+          dialogTitle: 'اختر واتساب لإرسال ملف الـ PDF'
+        });
+        showNotification('تم إرفاق ملف الـ PDF بنجاح ✔️');
       } else {
-        // إذا كان النظام لا يدعم مشاركة الملفات، يقوم بتنزيل الـ PDF وفتح شات العميل مباشرة
-        await h2p().set(opt).from(element).save();
-        showNotification('تم تنزيل الـ PDF، جاري فتح محادثة واتساب...');
-        setTimeout(() => {
-          handleDirectWhatsApp(doc.phone, msgText + '\n\n(تم تنزيل نسخة PDF الرسمية إلى ذاكرة هاتفك)');
-        }, 1200);
+        // في حال المعاينة عبر المتصفح
+        const blob = await (await fetch('data:application/pdf;base64,' + base64Data)).blob();
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'فاتورة OpenTik' });
+        } else {
+          showNotification('تم فتح نافذة المشاركة');
+        }
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
-        alert('حدث خطأ أثناء المعالجة: ' + err.message);
+        alert('حدث خطأ أثناء المشاركة: ' + err.message);
       }
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
-  // ================= 3. فتح واتساب المباشر بروتوكولياً بدون متصفح =================
+  // ================= 2. تنزيل وحفظ ملف PDF على ذاكرة الهاتف =================
+  const handleDownloadPDF = async () => {
+    if (!autoActionModal || !autoActionModal.data || isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    showNotification('جاري حفظ ملف الـ PDF في ذاكرة الهاتف...');
+
+    try {
+      const base64Data = await generatePdfBase64();
+      if (!base64Data) {
+        setIsGeneratingPdf(false);
+        return;
+      }
+
+      const doc = autoActionModal.data;
+      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client') + '.pdf';
+
+      if (Capacitor.isNativePlatform()) {
+        // حفظ الملف في مجلد المستندات بالهاتف
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: base64Data,
+          directory: Directory.Documents
+        });
+
+        // فتح نافذة خيارات الحفظ والمشاهدة الرسمية
+        await Share.share({
+          title: 'تم حفظ الفاتورة بنجاح',
+          text: 'تم حفظ الفاتورة في مجلد المستندات (Documents): ' + fileName,
+          url: result.uri,
+          dialogTitle: 'فتح أو حفظ ملف الـ PDF'
+        });
+        showNotification('تم حفظ ملف PDF في مجلد Documents بالهاتف 📄');
+      } else {
+        // تنزيل المتصفح
+        const h2p = await loadHtml2PdfEngine();
+        const element = document.getElementById('unified-printable-document');
+        h2p().set({ filename: fileName }).from(element).save();
+        showNotification('تم بدء التنزيل بنجاح 📄');
+      }
+    } catch (err) {
+      alert('خطأ أثناء حفظ الملف: ' + err.message);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  // فتح شات واتساب مباشرة
   const handleDirectWhatsApp = (phone, text) => {
     const rawPhone = (phone || '').replace(/[^0-9]/g, '');
     const fullPhone = rawPhone.startsWith('967') ? rawPhone : ('967' + rawPhone);
     const encoded = encodeURIComponent(text);
-    // استدعاء بروتوكول واتساب المباشر (يفتح التطبيق فوراً بدون Chrome)
     window.location.href = "whatsapp://send?phone=" + fullPhone + "&text=" + encoded;
   };
 
@@ -330,7 +338,6 @@ export default function App() {
       setInvoices([targetInv, ...invoices]);
       setCreatingInvoice(false);
     }
-    // فتح نافذة المعاينة والاعتماد التلقائية
     setAutoActionModal({ type: 'invoice', data: targetInv });
     showNotification('تم حفظ الفاتورة بنجاح ✔️');
   };
@@ -351,25 +358,12 @@ export default function App() {
       notes: voucherForm.notes || 'سداد دفعة من الفاتورة'
     };
     setVouchers([newVoucher, ...vouchers]);
-
-    // تحديث المدفوع
     setInvoices(invoices.map(inv => inv.id === creatingVoucher.id ? { ...inv, paid: (inv.paid || 0) + amt } : inv));
     setClients(clients.map(c => c.name === creatingVoucher.client ? { ...c, balance: Math.max(0, (c.balance || 0) - amt) } : c));
-
     setCreatingVoucher(null);
     setVoucherForm({ amount: '', method: 'نقداً', notes: '' });
     setAutoActionModal({ type: 'voucher', data: newVoucher });
     showNotification('تم إصدار سند القبض بنجاح 💵');
-  };
-
-  // حفظ عرض السعر
-  const handleSaveQuotation = (e) => {
-    e.preventDefault();
-    const newQt = { ...quotationForm, id: quotationForm.id || ("QT-" + (300 + quotations.length + 1)) };
-    setQuotations([newQt, ...quotations]);
-    setCreatingQuotation(false);
-    setAutoActionModal({ type: 'quotation', data: newQt });
-    showNotification('تم حفظ عرض السعر بنجاح 📋');
   };
 
   // تحويل باقة
@@ -411,7 +405,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans" dir="rtl">
       
-      {/* إشعار تفاعلي */}
+      {/* إشعار منبثق */}
       {toast && (
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-4 py-2 rounded-xl shadow-2xl border border-blue-400 flex items-center gap-2 text-xs font-bold animate-pulse">
           <CheckCircle2 className="w-4 h-4 text-emerald-300" />
@@ -423,13 +417,13 @@ export default function App() {
       <header className="bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center font-black text-xl text-white shadow-lg">
               OP
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-extrabold text-white">{systemSettings.companyName}</h1>
-                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-mono font-bold">Pro v2.2</span>
+                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-mono font-bold">Pro v2.3</span>
               </div>
               <p className="text-[11px] text-slate-400">{systemSettings.tagline}</p>
             </div>
@@ -452,7 +446,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* شريط الأقسام */}
+        {/* التبويبات */}
         <nav className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none text-xs font-semibold">
           <button onClick={() => setActiveTab('dashboard')} className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300')}>
             <Shield className="w-4 h-4" /> لوحة التحكم
@@ -478,7 +472,7 @@ export default function App() {
         </nav>
       </header>
 
-      {/* المحتوى الرئيسي */}
+      {/* المحتوى */}
       <main className="p-4 flex-1 max-w-6xl w-full mx-auto space-y-5">
         
         {/* لوحة التحكم */}
@@ -515,53 +509,13 @@ export default function App() {
           </div>
         )}
 
-        {/* العملاء */}
-        {activeTab === 'clients' && (
-          <div className="space-y-4">
-            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-between gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute right-3 top-3 text-slate-400" />
-                <input 
-                  type="text" 
-                  placeholder="ابحث باسم العميل أو الهاتف..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg pr-9 pl-3 py-2 text-xs text-white"
-                />
-              </div>
-              <button onClick={() => setNewClientModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 text-xs font-bold flex items-center gap-1.5">
-                <Plus className="w-4 h-4" /> إضافة عميل
-              </button>
-            </div>
-
-            <div className="grid gap-3">
-              {filteredClients.map(c => (
-                <div key={c.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
-                  <div>
-                    <h4 className="text-sm font-bold text-white">{c.name}</h4>
-                    <p className="text-xs text-slate-400 mt-1">الهاتف: {c.phone} | النظام: {c.system}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => handleDirectWhatsApp(c.phone, 'مرحباً ' + c.name + '، معكم شركة OpenTik للأنظمة الذكية.')} className="p-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-800 rounded-lg">
-                      <MessageCircle className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => setViewClientDetails(c)} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs">
-                      الملف الشامل
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* الفواتير */}
         {activeTab === 'invoices' && (
           <div className="space-y-4">
             <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-white">فواتير التوريد والتركيب</h3>
-                <p className="text-xs text-slate-400">إصدار الفواتير مع المعاينة والمشاركة المباشرة عبر واتساب</p>
+                <p className="text-xs text-slate-400">إصدار الفواتير مع المعاينة والمشاركة المباشرة كـ PDF عبر واتساب</p>
               </div>
               <button 
                 onClick={() => {
@@ -605,7 +559,7 @@ export default function App() {
                           onClick={() => setAutoActionModal({ type: 'invoice', data: inv })}
                           className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs flex items-center gap-1.5 font-bold shadow"
                         >
-                          <Eye className="w-3.5 h-3.5" /> معاينة واعتماد وإرسال
+                          <Eye className="w-3.5 h-3.5" /> معاينة وإرسال PDF
                         </button>
                         <button 
                           onClick={() => setEditingInvoice(JSON.parse(JSON.stringify(inv)))}
@@ -666,7 +620,6 @@ export default function App() {
                     
                     <div className="my-3">
                       <span className="text-lg font-black text-white font-mono">{formatMoney(pkg.price)}</span>
-                      <span className="text-[10px] text-slate-400 block">شامل التوريد والتركيب والبرمجة</span>
                     </div>
 
                     <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-800 space-y-1 text-xs text-slate-300">
@@ -719,7 +672,7 @@ export default function App() {
 
       </main>
 
-      {/* ================= النافذة المنبثقة الذكية للمعاينة والاعتماد والإرسال ================= */}
+      {/* ================= النافذة الذكية للمعاينة والمشاركة الفورية ================= */}
       {autoActionModal && autoActionModal.data && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-md w-full p-5 space-y-4 shadow-2xl">
@@ -747,28 +700,30 @@ export default function App() {
               )}
             </div>
 
-            {/* الأزرار التفاعلية المصححة */}
+            {/* الأزرار التفاعلية الأصلية لنظام أندرويد */}
             <div className="space-y-2.5 pt-1 text-xs">
               
-              {/* الزر 1: مشاركة وإرسال ملف PDF الفعلي عبر واتساب الأعمال أو واتساب العادي */}
+              {/* 1. مشاركة ملف PDF الفعلي عبر واتساب */}
               <button 
                 onClick={handleSharePdfToWhatsApp}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-3 font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 text-xs"
+                disabled={isGeneratingPdf}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl py-3 font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 text-xs"
               >
                 <Share2 className="w-4 h-4" /> 
-                <span>مشاركة وإرسال ملف الـ PDF عبر واتساب</span>
+                <span>{isGeneratingPdf ? 'جاري تجهيز الملف...' : 'مشاركة وإرسال ملف الـ PDF عبر واتساب'}</span>
               </button>
 
-              {/* الزر 2: تنزيل نسخة PDF الرسمية إلى ذاكرة الهاتف مباشرة */}
+              {/* 2. حفظ وتنزيل ملف PDF في ذاكرة الهاتف */}
               <button 
                 onClick={handleDownloadPDF}
-                className="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-xl py-2.5 font-bold transition flex items-center justify-center gap-2 border border-slate-700"
+                disabled={isGeneratingPdf}
+                className="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white rounded-xl py-2.5 font-bold transition flex items-center justify-center gap-2 border border-slate-700"
               >
                 <Download className="w-4 h-4 text-cyan-400" /> 
                 <span>تنزيل وحفظ ملف PDF على الهاتف</span>
               </button>
 
-              {/* الزر 3: فتح محادثة العميل مباشرة في تطبيق واتساب بدون متصفح */}
+              {/* 3. فتح شات واتساب بالنص مباشرة */}
               <button 
                 onClick={() => {
                   const doc = autoActionModal.data;
@@ -793,8 +748,8 @@ export default function App() {
         </div>
       )}
 
-      {/* ================= قالب الطباعة الموحد (الموجود دائماً في الـ DOM لتفادي خطأ عدم وجود العنصر) ================= */}
-      <div style={{ position: 'fixed', left: '-9999px', top: 0, width: '794px', background: '#ffffff', color: '#0f172a', zIndex: -100 }}>
+      {/* ================= قالب الفاتورة الموحد (موجود دائماً في الشاشة لضمان توليد الـ PDF بنجاح) ================= */}
+      <div style={{ position: 'fixed', top: 0, left: 0, width: '794px', opacity: 0, pointerEvents: 'none', zIndex: -100 }}>
         {autoActionModal && autoActionModal.data && (
           <div id="unified-printable-document" className="p-8 bg-white text-slate-900 text-right font-sans" dir="rtl">
             <div className="flex justify-between items-center border-b-2 border-blue-600 pb-4 mb-5">
@@ -896,28 +851,6 @@ export default function App() {
         )}
       </div>
 
-      {/* نافذة إضافة عميل */}
-      {newClientModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 rounded-xl border border-slate-800 max-w-md w-full p-5 space-y-4">
-            <h3 className="font-bold text-white text-sm">إضافة عميل جديد</h3>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              setClients([...clients, { ...newClientForm, id: "CL-" + (100 + clients.length + 1), balance: 0, warrantyStatus: 'ساري', installedDevices: ['منظومة ذكية متكاملة'] }]);
-              setNewClientModal(false);
-              showNotification('تم حفظ العميل بنجاح');
-            }} className="space-y-3 text-xs">
-              <input type="text" placeholder="اسم المنشأة" onChange={e => setNewClientForm({...newClientForm, name: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" required />
-              <input type="text" placeholder="رقم الهاتف" onChange={e => setNewClientForm({...newClientForm, phone: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded p-2 text-white" required />
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setNewClientModal(false)} className="px-3 py-1.5 bg-slate-800 rounded">إلغاء</button>
-                <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white rounded font-bold">حفظ</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* نافذة إضافة فاتورة */}
       {creatingInvoice && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
@@ -946,18 +879,6 @@ export default function App() {
                 <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white rounded font-bold">حفظ ومعاينة</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* نافذة تفاصيل العميل */}
-      {viewClientDetails && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 rounded-xl border border-slate-800 max-w-md w-full p-5 space-y-3 text-xs">
-            <h3 className="font-bold text-white text-sm">{viewClientDetails.name}</h3>
-            <p className="text-slate-400">الهاتف: {viewClientDetails.phone}</p>
-            <p className="text-slate-400">النظام: {viewClientDetails.system}</p>
-            <button onClick={() => setViewClientDetails(null)} className="w-full bg-slate-800 py-2 rounded text-white font-bold mt-2">إغلاق</button>
           </div>
         </div>
       )}
