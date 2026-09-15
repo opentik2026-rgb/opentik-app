@@ -8,424 +8,426 @@ import {
   FileText, 
   Wrench, 
   Plus, 
-  CheckCircle2, 
-  Clock, 
-  AlertCircle, 
+  Edit3, 
+  Download, 
   Search, 
-  Phone, 
-  DollarSign, 
-  Trash2,
-  Printer
+  CheckCircle, 
+  X, 
+  Eye
 } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('invoices');
   
-  // بيانات العملاء الأولية
-  const [clients, setClients] = useState([
-    { id: 'CL-101', name: 'شركة النجم الذهبي للتجارة', phone: '777112233', system: 'كاميرات مراقبة وشبكات', balance: 1450, status: 'نشط' },
-    { id: 'CL-102', name: 'مستشفى الأمل التخصصي', phone: '771223344', system: 'طاقة شمسية وسنترال', balance: 0, status: 'مكتمل' },
-    { id: 'CL-103', name: 'مجمع العواضي التجاري', phone: '773445566', system: 'أنظمة إنذار وحضور وانصراف', balance: 3200, status: 'مستحق' },
-    { id: 'CL-104', name: 'مؤسسة الريادة للاستيراد', phone: '770998877', system: 'كاميرات شبكية NVR وشبكات', balance: 800, status: 'نشط' },
-  ]);
-
-  // بيانات الفواتير
+  // بيانات الفواتير مع بنود تفصيلية
   const [invoices, setInvoices] = useState([
-    { id: 'INV-1001', client: 'شركة النجم الذهبي للتجارة', total: 2450, paid: 1000, remaining: 1450, date: '2026-09-10', status: 'جزئي' },
-    { id: 'INV-1002', client: 'مستشفى الأمل التخصصي', total: 5600, paid: 5600, remaining: 0, date: '2026-09-12', status: 'مدفوع' },
-    { id: 'INV-1003', client: 'مجمع العواضي التجاري', total: 3200, paid: 0, remaining: 3200, date: '2026-09-14', status: 'غير مدفوع' },
+    { 
+      id: 'INV-1001', 
+      client: 'شركة النجم الذهبي للتجارة', 
+      phone: '777112233',
+      date: '2026-09-10', 
+      system: 'كاميرات مراقبة وشبكات',
+      items: [
+        { name: 'كاميرا شبكية IP بدقة 5MP ذكية', qty: 8, price: 65 },
+        { name: 'جهاز تسجيل NVR 16CH مع قرص 4TB', qty: 1, price: 320 },
+        { name: 'سويتش شبكة 16Port PoE ومستلزمات', qty: 1, price: 180 },
+        { name: 'تمديد وتركيب وبرمجة المنظومة', qty: 1, price: 250 }
+      ],
+      paid: 1000,
+      notes: 'ضمان لمدة عام كامل على الأجهزة ضد عيوب التصنيع.'
+    },
+    { 
+      id: 'INV-1002', 
+      client: 'مستشفى الأمل التخصصي', 
+      phone: '771223344',
+      date: '2026-09-12', 
+      system: 'طاقة شمسية وانفرتر',
+      items: [
+        { name: 'انفرتر هجين Deye قدرة 12KW', qty: 1, price: 2100 },
+        { name: 'بطارية ليثيوم 5KW مع قواطع الحماية', qty: 2, price: 1400 },
+        { name: 'أعمال التركيب وتوزيع الأحمال', qty: 1, price: 700 }
+      ],
+      paid: 5600,
+      notes: 'تم التسليم والفحص بحالة ممتازة.'
+    }
   ]);
 
-  // تذاكر الدعم الفني
-  const [tickets, setTickets] = useState([
-    { id: 'TK-501', client: 'شركة النجم الذهبي', issue: 'فقدان إشارة كاميرا المدخل الرئيسي', priority: 'عالية', status: 'قيد التنفيذ' },
-    { id: 'TK-502', client: 'مجمع العواضي', issue: 'برمجة جهاز البصمة وتحديث الموظفين', priority: 'متوسطة', status: 'جديدة' },
-  ]);
+  // حالة التحكم بالنافذة المنبثقة للتعديل أو المعاينة
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [previewInvoice, setPreviewInvoice] = useState(null);
 
-  // نماذج الإدخال السريع
-  const [newClient, setNewClient] = useState({ name: '', phone: '', system: 'كاميرات مراقبة IP', balance: '' });
-  const [newTicket, setNewTicket] = useState({ client: '', issue: '', priority: 'متوسطة' });
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // إضافة عميل جديد
-  const handleAddClient = (e) => {
-    e.preventDefault();
-    if (!newClient.name || !newClient.phone) return;
-    const clientRecord = {
-      id: "CL-" + (100 + clients.length + 1),
-      name: newClient.name,
-      phone: newClient.phone,
-      system: newClient.system,
-      balance: parseFloat(newClient.balance) || 0,
-      status: 'نشط'
-    };
-    setClients([clientRecord, ...clients]);
-    setNewClient({ name: '', phone: '', system: 'كاميرات مراقبة IP', balance: '' });
+  // حساب إجماليات الفاتورة
+  const calculateTotal = (items) => {
+    return items.reduce((sum, item) => sum + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0);
   };
 
-  // إضافة تذكرة صيانة
-  const handleAddTicket = (e) => {
-    e.preventDefault();
-    if (!newTicket.client || !newTicket.issue) return;
-    const ticketRecord = {
-      id: "TK-" + (500 + tickets.length + 1),
-      client: newTicket.client,
-      issue: newTicket.issue,
-      priority: newTicket.priority,
-      status: 'جديدة'
-    };
-    setTickets([ticketRecord, ...tickets]);
-    setNewTicket({ client: '', issue: '', priority: 'متوسطة' });
+  // فتح نافذة تعديل فاتورة
+  const handleEditClick = (inv) => {
+    setEditingInvoice(JSON.parse(JSON.stringify(inv))); // نسخة عميقة للتعديل
   };
 
-  // العمليات الحسابية للملخص
-  const totalReceivables = clients.reduce((acc, c) => acc + (c.balance || 0), 0);
-  const totalSales = invoices.reduce((acc, inv) => acc + (inv.total || 0), 0);
-  const totalCollected = invoices.reduce((acc, inv) => acc + (inv.paid || 0), 0);
+  // حفظ التعديلات
+  const handleSaveInvoice = (e) => {
+    e.preventDefault();
+    setInvoices(invoices.map(inv => inv.id === editingInvoice.id ? editingInvoice : inv));
+    setEditingInvoice(null);
+  };
 
-  const filteredClients = clients.filter(c => 
-    c.name.includes(searchTerm) || c.phone.includes(searchTerm) || c.system.includes(searchTerm)
-  );
+  // تغيير قيم بنود الفاتورة أثناء التعديل
+  const handleItemChange = (index, field, value) => {
+    const updatedItems = [...editingInvoice.items];
+    updatedItems[index][field] = value;
+    setEditingInvoice({ ...editingInvoice, items: updatedItems });
+  };
+
+  // إضافة بند جديد داخل الفاتورة
+  const handleAddItem = () => {
+    setEditingInvoice({
+      ...editingInvoice,
+      items: [...editingInvoice.items, { name: '', qty: 1, price: 0 }]
+    });
+  };
+
+  // حذف بند
+  const handleRemoveItem = (index) => {
+    const updatedItems = editingInvoice.items.filter((_, i) => i !== index);
+    setEditingInvoice({ ...editingInvoice, items: updatedItems });
+  };
+
+  // تصدير الفاتورة إلى ملف PDF على الهاتف
+  const handleExportPDF = (invoice) => {
+    const element = document.getElementById('printable-invoice-' + invoice.id);
+    if (!element || !window.html2pdf) {
+      alert('جاري تحميل أداة الـ PDF، يرجى المحاولة بعد لحظات...');
+      return;
+    }
+
+    const opt = {
+      margin: 10,
+      filename: invoice.id + '_' + invoice.client + '.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    window.html2pdf().set(opt).from(element).save();
+  };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col" dir="rtl">
-      {/* الشريط العلوي */}
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans" dir="rtl">
+      {/* الرأس */}
       <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 sticky top-0 z-30 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/30">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-xl text-white shadow-lg">
               OP
             </div>
             <div>
               <h1 className="text-lg font-bold text-white leading-tight">OpenTik للأنظمة الذكية</h1>
-              <p className="text-xs text-slate-400">إدارة العملاء والحسابات والعمليات</p>
+              <p className="text-xs text-slate-400">إدارة الفواتير والحسابات</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-block px-3 py-1 text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full font-medium">
-              النظام متصل
-            </span>
-          </div>
+          <span className="text-xs px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full">
+            نظام الفوترة نشط
+          </span>
         </div>
-
-        {/* أزرار التنقل الرئيسية */}
-        <nav className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none">
-          <button 
-            onClick={() => setActiveTab('dashboard')}
-            className={"px-4 py-2 text-sm rounded-lg font-medium transition flex items-center gap-2 shrink-0 " + (activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
-          >
-            <Shield className="w-4 h-4" /> لوحة التحكم
-          </button>
-          <button 
-            onClick={() => setActiveTab('clients')}
-            className={"px-4 py-2 text-sm rounded-lg font-medium transition flex items-center gap-2 shrink-0 " + (activeTab === 'clients' ? 'bg-blue-600 text-white shadow' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
-          >
-            <Users className="w-4 h-4" /> العملاء ({clients.length})
-          </button>
-          <button 
-            onClick={() => setActiveTab('invoices')}
-            className={"px-4 py-2 text-sm rounded-lg font-medium transition flex items-center gap-2 shrink-0 " + (activeTab === 'invoices' ? 'bg-blue-600 text-white shadow' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
-          >
-            <FileText className="w-4 h-4" /> الحسابات والفواتير
-          </button>
-          <button 
-            onClick={() => setActiveTab('tickets')}
-            className={"px-4 py-2 text-sm rounded-lg font-medium transition flex items-center gap-2 shrink-0 " + (activeTab === 'tickets' ? 'bg-blue-600 text-white shadow' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
-          >
-            <Wrench className="w-4 h-4" /> الدعم الفني ({tickets.length})
-          </button>
-        </nav>
       </header>
 
-      {/* المحتوى الرئيسي */}
-      <main className="p-4 flex-1 max-w-7xl w-full mx-auto space-y-6">
-        {/* تبويب لوحة التحكم */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            {/* بطاقات الإحصائيات */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
-                <p className="text-xs text-slate-400">إجمالي المبيعات</p>
-                <h3 className="text-xl font-bold text-white mt-1">{"$" + totalSales.toLocaleString()}</h3>
-                <span className="text-[11px] text-emerald-400 font-medium mt-2 inline-block">مشاريع وعقود</span>
-              </div>
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
-                <p className="text-xs text-slate-400">المبالغ المحصلة</p>
-                <h3 className="text-xl font-bold text-emerald-400 mt-1">{"$" + totalCollected.toLocaleString()}</h3>
-                <span className="text-[11px] text-slate-400 mt-2 inline-block">سندات قبض معتمدة</span>
-              </div>
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
-                <p className="text-xs text-slate-400">المتبقي طرف العملاء</p>
-                <h3 className="text-xl font-bold text-rose-400 mt-1">{"$" + totalReceivables.toLocaleString()}</h3>
-                <span className="text-[11px] text-rose-300/80 mt-2 inline-block">ذمم مدينة واجبة السداد</span>
-              </div>
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-sm">
-                <p className="text-xs text-slate-400">العملاء النشطون</p>
-                <h3 className="text-xl font-bold text-blue-400 mt-1">{clients.length}</h3>
-                <span className="text-[11px] text-slate-400 mt-2 inline-block">أنظمة ذكية وطاقة</span>
-              </div>
-            </div>
+      {/* قائمة الفواتير */}
+      <main className="p-4 max-w-5xl w-full mx-auto space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-base font-bold text-white flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-400" /> فواتير التوريد وعقود التركيب
+          </h2>
+        </div>
 
-            {/* قطاعات OpenTik */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-              <h2 className="text-sm font-bold text-slate-200 mb-3">مجالات وأنظمة الشركة</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-700/50 flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg"><Camera className="w-5 h-5" /></div>
+        <div className="grid gap-4">
+          {invoices.map(inv => {
+            const total = calculateTotal(inv.items);
+            const remaining = total - inv.paid;
+            return (
+              <div key={inv.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-700/60 pb-2">
                   <div>
-                    <h4 className="text-xs font-bold text-white">كاميرات المراقبة</h4>
-                    <p className="text-[10px] text-slate-400">IP, NVR, Smart AI</p>
-                  </div>
-                </div>
-                <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-700/50 flex items-center gap-3">
-                  <div className="p-2 bg-cyan-500/20 text-cyan-400 rounded-lg"><Wifi className="w-5 h-5" /></div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">الشبكات والربط</h4>
-                    <p className="text-[10px] text-slate-400">راوترات وسويتشات PoE</p>
-                  </div>
-                </div>
-                <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-700/50 flex items-center gap-3">
-                  <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg"><Sun className="w-5 h-5" /></div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">الطاقة البديلة</h4>
-                    <p className="text-[10px] text-slate-400">انفرتر وبطاريات ليثيوم</p>
-                  </div>
-                </div>
-                <div className="p-3 bg-slate-900/60 rounded-lg border border-slate-700/50 flex items-center gap-3">
-                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg"><Shield className="w-5 h-5" /></div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">أجهزة الإنذار والبصمة</h4>
-                    <p className="text-[10px] text-slate-400">Access Control & PBX</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* أحدث التذاكر والعمليات السريعة */}
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-400" /> تذاكر الدعم الفني العاجلة
-                </h3>
-                <div className="space-y-2">
-                  {tickets.map(t => (
-                    <div key={t.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-700/40 flex justify-between items-center">
-                      <div>
-                        <span className="text-xs font-bold text-white">{t.client}</span>
-                        <p className="text-xs text-slate-400 mt-0.5">{t.issue}</p>
-                      </div>
-                      <span className="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {t.status}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">{inv.id}</span>
+                      <h3 className="font-bold text-white">{inv.client}</h3>
                     </div>
-                  ))}
+                    <p className="text-xs text-slate-400 mt-1">الهاتف: {inv.phone} | التاريخ: {inv.date}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleEditClick(inv)}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs flex items-center gap-1 transition"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" /> تعديل الفاتورة
+                    </button>
+                    <button 
+                      onClick={() => setPreviewInvoice(inv)}
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs flex items-center gap-1 transition"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> معاينة
+                    </button>
+                    <button 
+                      onClick={() => handleExportPDF(inv)}
+                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs flex items-center gap-1 transition"
+                    >
+                      <Download className="w-3.5 h-3.5" /> تحميل PDF
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-                <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-emerald-400" /> الفواتير المستحقة مؤخراً
-                </h3>
-                <div className="space-y-2">
-                  {invoices.filter(i => i.remaining > 0).map(i => (
-                    <div key={i.id} className="p-3 bg-slate-900/50 rounded-lg border border-slate-700/40 flex justify-between items-center">
+                {/* تفاصيل المبالغ */}
+                <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-2.5 rounded-lg text-center">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">الإجمالي</span>
+                    <span className="text-xs font-bold text-white font-mono">{"$" + total.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">المسدد</span>
+                    <span className="text-xs font-bold text-emerald-400 font-mono">{"$" + inv.paid.toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">المتبقي</span>
+                    <span className="text-xs font-bold text-rose-400 font-mono">{"$" + remaining.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* قالب الفاتورة المخفي المخصص لإنتاج ملف الـ PDF بجودة A4 */}
+                <div className="hidden">
+                  <div id={"printable-invoice-" + inv.id} className="p-8 bg-white text-slate-900 text-right font-sans" dir="rtl">
+                    <div className="flex justify-between items-center border-b-2 border-blue-600 pb-4 mb-6">
                       <div>
-                        <span className="text-xs font-bold text-white">{i.client}</span>
-                        <p className="text-xs text-slate-400 mt-0.5">{"فاتورة رقم: " + i.id}</p>
+                        <h1 className="text-2xl font-black text-blue-700">OpenTik للأنظمة الذكية</h1>
+                        <p className="text-xs text-slate-600 mt-1">كاميرات مراقبة - شبكات - أنظمة أمان - طاقة بديلة</p>
                       </div>
                       <div className="text-left">
-                        <span className="text-xs font-bold text-rose-400 block">{"$" + i.remaining}</span>
-                        <span className="text-[10px] text-slate-400">{i.date}</span>
+                        <span className="text-xl font-bold text-slate-800">فاتورة توريد وتركيب</span>
+                        <p className="text-xs text-slate-500 font-mono mt-1">رقم الفاتورة: {inv.id}</p>
+                        <p className="text-xs text-slate-500 font-mono">التاريخ: {inv.date}</p>
                       </div>
                     </div>
-                  ))}
+
+                    <div className="bg-slate-50 p-4 rounded-lg mb-6 border border-slate-200">
+                      <h3 className="text-sm font-bold text-slate-800 mb-1">بيانات العميل:</h3>
+                      <p className="text-sm font-semibold text-slate-700">الاسم: {inv.client}</p>
+                      <p className="text-xs text-slate-600">رقم الهاتف: {inv.phone}</p>
+                      <p className="text-xs text-slate-600">نوع النظام: {inv.system}</p>
+                    </div>
+
+                    <table className="w-full text-right border-collapse mb-6 text-sm">
+                      <thead>
+                        <tr className="bg-blue-600 text-white">
+                          <th className="p-2 border">#</th>
+                          <th className="p-2 border">البيان / الصنف</th>
+                          <th className="p-2 border text-center">الكمية</th>
+                          <th className="p-2 border text-center">سعر الوحدة ($)</th>
+                          <th className="p-2 border text-center">الإجمالي ($)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {inv.items.map((item, idx) => (
+                          <tr key={idx} className="border-b border-slate-200">
+                            <td className="p-2 border text-center font-mono">{idx + 1}</td>
+                            <td className="p-2 border font-medium">{item.name}</td>
+                            <td className="p-2 border text-center font-mono">{item.qty}</td>
+                            <td className="p-2 border text-center font-mono">{"$" + item.price}</td>
+                            <td className="p-2 border text-center font-mono font-bold">{"$" + (item.qty * item.price)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="w-1/2 p-3 bg-slate-50 rounded border border-slate-200 text-xs">
+                        <span className="font-bold block mb-1">ملاحظات وشروط الضمان:</span>
+                        <p className="text-slate-600">{inv.notes || 'الضمان ساري بموجب الفاتورة الرسمية.'}</p>
+                      </div>
+                      <div className="w-1/3 space-y-1.5 text-sm">
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-600">إجمالي الفاتورة:</span>
+                          <span className="font-bold font-mono">{"$" + total}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-1">
+                          <span className="text-slate-600">المبلغ المسدد:</span>
+                          <span className="font-bold text-emerald-600 font-mono">{"$" + inv.paid}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-base pt-1">
+                          <span className="text-rose-600">المتبقي المطلوب:</span>
+                          <span className="text-rose-600 font-mono">{"$" + remaining}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4 text-center text-xs text-slate-400">
+                      شكراً لتعاملكم مع OpenTik للأنظمة الذكية | خدمات التركيب والدعم الفني المعتمد
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            );
+          })}
+        </div>
+      </main>
 
-        {/* تبويب العملاء */}
-        {activeTab === 'clients' && (
-          <div className="space-y-4">
-            {/* إضافة عميل جديد */}
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-              <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-blue-400" /> إضافة عميل جديد لنظام OpenTik
+      {/* نافذة منبثقة لتعديل الفاتورة (Edit Modal) */}
+      {editingInvoice && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-2xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-700 pb-3">
+              <h3 className="font-bold text-white flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-blue-400" /> تعديل الفاتورة: {editingInvoice.id}
               </h3>
-              <form onSubmit={handleAddClient} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                <input 
-                  type="text" 
-                  placeholder="اسم المنشأة أو العميل" 
-                  value={newClient.name}
-                  onChange={(e) => setNewClient({...newClient, name: e.target.value})}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-                <input 
-                  type="text" 
-                  placeholder="رقم الهاتف" 
-                  value={newClient.phone}
-                  onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-                <select 
-                  value={newClient.system}
-                  onChange={(e) => setNewClient({...newClient, system: e.target.value})}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                >
-                  <option value="كاميرات مراقبة IP">كاميرات مراقبة IP</option>
-                  <option value="طاقة شمسية وانفرتر">طاقة شمسية وانفرتر</option>
-                  <option value="شبكات وربط لاسلكي">شبكات وربط لاسلكي</option>
-                  <option value="أنظمة أمان وبصمة">أنظمة أمان وبصمة</option>
-                  <option value="سنترال واتصالات">سنترال واتصالات</option>
-                </select>
-                <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-2 text-sm font-bold transition flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" /> حفظ العميل
-                </button>
-              </form>
-            </div>
-
-            {/* شريط البحث */}
-            <div className="relative">
-              <Search className="w-4 h-4 absolute right-3 top-3 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="البحث باسم العميل، الهاتف، أو نوع النظام..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg pr-9 pl-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            {/* جدول العملاء */}
-            <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-slate-900/80 text-slate-400 border-b border-slate-700">
-                    <tr>
-                      <th className="p-3">المعرف</th>
-                      <th className="p-3">العميل</th>
-                      <th className="p-3">الهاتف</th>
-                      <th className="p-3">النظام المنفذ</th>
-                      <th className="p-3">الرصيد المتبقي</th>
-                      <th className="p-3">الحالة</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-700/50">
-                    {filteredClients.map(c => (
-                      <tr key={c.id} className="hover:bg-slate-700/30">
-                        <td className="p-3 text-slate-400 font-mono">{c.id}</td>
-                        <td className="p-3 font-bold text-white">{c.name}</td>
-                        <td className="p-3 text-slate-300 font-mono">{c.phone}</td>
-                        <td className="p-3 text-slate-300">{c.system}</td>
-                        <td className="p-3 font-bold text-rose-400">{"$" + c.balance}</td>
-                        <td className="p-3">
-                          <span className={"px-2 py-0.5 rounded text-[10px] " + (c.balance === 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400')}>
-                            {c.balance === 0 ? 'خالص' : 'عليه رصيد'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* تبويب الحسابات والفواتير */}
-        {activeTab === 'invoices' && (
-          <div className="space-y-4">
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-wrap justify-between items-center gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-white">فواتير التوريد والتركيب</h3>
-                <p className="text-xs text-slate-400">إدارة مستحقات مشاريع الأنظمة الذكية</p>
-              </div>
-              <button onClick={() => window.print()} className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs flex items-center gap-1.5 transition">
-                <Printer className="w-3.5 h-3.5" /> طباعة كشف الحساب
+              <button onClick={() => setEditingInvoice(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="grid gap-3">
-              {invoices.map(inv => (
-                <div key={inv.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-blue-400 font-bold">{inv.id}</span>
-                      <span className="text-xs text-slate-400">|</span>
-                      <span className="text-sm font-bold text-white">{inv.client}</span>
+            <form onSubmit={handleSaveInvoice} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-300 block mb-1">اسم العميل</label>
+                  <input 
+                    type="text" 
+                    value={editingInvoice.client}
+                    onChange={(e) => setEditingInvoice({...editingInvoice, client: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1">رقم الهاتف</label>
+                  <input 
+                    type="text" 
+                    value={editingInvoice.phone}
+                    onChange={(e) => setEditingInvoice({...editingInvoice, phone: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* جدول بنود الفاتورة للتعديل */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-slate-300 font-bold">بنود الفاتورة والكميات</label>
+                  <button 
+                    type="button" 
+                    onClick={handleAddItem}
+                    className="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[11px] flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> إضافة بند
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {editingInvoice.items.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-slate-900/60 p-2 rounded border border-slate-700">
+                      <input 
+                        type="text" 
+                        placeholder="اسم الصنف / الخدمة"
+                        value={item.name}
+                        onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-xs"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="الكمية"
+                        value={item.qty}
+                        onChange={(e) => handleItemChange(idx, 'qty', e.target.value)}
+                        className="w-16 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-xs text-center"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="السعر"
+                        value={item.price}
+                        onChange={(e) => handleItemChange(idx, 'price', e.target.value)}
+                        className="w-20 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-xs text-center"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveItem(idx)}
+                        className="text-rose-400 hover:text-rose-300 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">تاريخ الإصدار: {inv.date}</p>
-                  </div>
-                  <div className="flex items-center gap-4 bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
-                    <div>
-                      <p className="text-[10px] text-slate-400">الإجمالي</p>
-                      <p className="text-xs font-bold text-white">{"$" + inv.total}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-400">المدفوع</p>
-                      <p className="text-xs font-bold text-emerald-400">{"$" + inv.paid}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-slate-400">المتبقي</p>
-                      <p className="text-xs font-bold text-rose-400">{"$" + inv.remaining}</p>
-                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* تعديل المبلغ المدفوع */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="text-slate-300 block mb-1">المبلغ المسدد ($)</label>
+                  <input 
+                    type="number" 
+                    value={editingInvoice.paid}
+                    onChange={(e) => setEditingInvoice({...editingInvoice, paid: Number(e.target.value)})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1">الإجمالي الجديد المحسوب</label>
+                  <div className="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-2 text-emerald-400 font-bold font-mono">
+                    {"$" + calculateTotal(editingInvoice.items)}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
 
-        {/* تبويب تذاكر الدعم الفني */}
-        {activeTab === 'tickets' && (
-          <div className="space-y-4">
-            <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
-              <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                <Wrench className="w-4 h-4 text-blue-400" /> فتح بلاغ صيانة / دعم فني ميداني
-              </h3>
-              <form onSubmit={handleAddTicket} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input 
-                  type="text" 
-                  placeholder="اسم العميل أو المنشأة" 
-                  value={newTicket.client}
-                  onChange={(e) => setNewTicket({...newTicket, client: e.target.value})}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-                <input 
-                  type="text" 
-                  placeholder="وصف المشكلة (مثال: عطل في سويتش PoE، برمجة NVR...)" 
-                  value={newTicket.issue}
-                  onChange={(e) => setNewTicket({...newTicket, issue: e.target.value})}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-                />
-                <button type="submit" className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-2 text-sm font-bold transition flex items-center justify-center gap-2">
-                  <Plus className="w-4 h-4" /> تسجيل البلاغ
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-700">
+                <button 
+                  type="button" 
+                  onClick={() => setEditingInvoice(null)}
+                  className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg text-xs font-bold"
+                >
+                  إلغاء
                 </button>
-              </form>
-            </div>
+                <button 
+                  type="submit" 
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
+                >
+                  <CheckCircle className="w-4 h-4" /> حفظ التغييرات
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
-            <div className="space-y-3">
-              {tickets.map(t => (
-                <div key={t.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-blue-400 font-bold">{t.id}</span>
-                      <h4 className="text-sm font-bold text-white">{t.client}</h4>
-                    </div>
-                    <p className="text-xs text-slate-300 mt-1">{t.issue}</p>
+      {/* نافذة المعاينة السريعة */}
+      {previewInvoice && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-xl w-full p-5 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+              <h3 className="font-bold text-white">معاينة الفاتورة: {previewInvoice.id}</h3>
+              <button onClick={() => setPreviewInvoice(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-2 text-xs">
+              <p><strong className="text-slate-400">العميل:</strong> {previewInvoice.client}</p>
+              <p><strong className="text-slate-400">الهاتف:</strong> {previewInvoice.phone}</p>
+              <div className="bg-slate-900 p-3 rounded-lg space-y-1">
+                {previewInvoice.items.map((it, i) => (
+                  <div key={i} className="flex justify-between">
+                    <span>{it.name} (x{it.qty})</span>
+                    <span className="font-mono">{"$" + (it.qty * it.price)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-1 rounded text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      {t.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
+              <button 
+                onClick={() => {
+                  handleExportPDF(previewInvoice);
+                  setPreviewInvoice(null);
+                }}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+              >
+                <Download className="w-3.5 h-3.5" /> تنزيل الفاتورة PDF
+              </button>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }
