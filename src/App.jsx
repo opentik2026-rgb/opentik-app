@@ -15,19 +15,30 @@ import {
   CheckCircle2,
   X, 
   Eye, 
+  Clock, 
+  Phone, 
   DollarSign, 
   Layers, 
-  MessageCircle, 
-  Settings, 
-  FileCheck, 
-  Share2, 
-  Save 
+  Send, 
+  Award,
+  MessageCircle,
+  Database,
+  PhoneCall,
+  Save,
+  Settings,
+  FileCheck,
+  Share2,
+  Building,
+  Briefcase,
+  AlertCircle
 } from 'lucide-react';
 
-// استدعاء مكتبات أندرويد الأصلية للملفات والمشاركة
+// استدعاء مكتبات أندرويد الرسمية للملفات والمشاركة
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { Capacitor } from '@capacitor/core';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -35,7 +46,7 @@ export default function App() {
   const [filterSystem, setFilterSystem] = useState('all');
   const [currencyMode, setCurrencyMode] = useState('USD');
   const [toast, setToast] = useState(null);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
 
   const showNotification = (msg) => {
     setToast(msg);
@@ -56,11 +67,11 @@ export default function App() {
       bankKuraimi: '3001245678',
       bankTadhamon: '1024558',
       bankQutaibi: '7789012',
-      defaultWarranty: 'عام كامل ضمان استبدال ضد عيوب المصنع'
+      defaultWarranty: 'عام كامل ضمان استبدال فوري ضد عيوب المصنع'
     };
   });
 
-  // العملاء
+  // بيانات العملاء
   const [clients, setClients] = useState(() => {
     const saved = localStorage.getItem('opentik_clients');
     return saved ? JSON.parse(saved) : [
@@ -75,6 +86,18 @@ export default function App() {
         warrantyStatus: 'ساري',
         balance: 1450,
         installedDevices: ['8x كاميرات شبكية Dahua 5MP IP AI', '1x جهاز تسجيل NVR 16-CH 4K', '1x سويتش PoE 16Port']
+      },
+      { 
+        id: 'CL-102', 
+        name: 'مستشفى الأمل التخصصي', 
+        contactPerson: 'د. خالد عبدالجليل',
+        phone: '771223344', 
+        address: 'شارع تعز - صنعاء',
+        system: 'طاقة بديلة وانفرتر', 
+        warrantyExpiry: '2028-09-12',
+        warrantyStatus: 'ساري',
+        balance: 0,
+        installedDevices: ['1x انفرتر هجين Deye 12KW Three-Phase', '2x بنك بطاريات ليثيوم 48V 100Ah']
       }
     ];
   });
@@ -93,7 +116,9 @@ export default function App() {
         discount: 100,
         items: [
           { name: 'كاميرا شبكية IP بدقة 5MP ذكية AI', qty: 8, price: 65 },
-          { name: 'جهاز تسجيل NVR 16CH مع قرص 4TB Purple', qty: 1, price: 320 }
+          { name: 'جهاز تسجيل NVR 16CH مع قرص 4TB Purple', qty: 1, price: 320 },
+          { name: 'سويتش شبكة 16Port PoE Gigabit', qty: 1, price: 180 },
+          { name: 'تمديدات وتركيب وبرمجة وتدريب الكادر', qty: 1, price: 250 }
         ],
         paid: 500,
         notes: 'الضمان لمدة عام كامل يشمل القطع والاستبدال الفوري ضد عيوب المصنع.'
@@ -101,16 +126,19 @@ export default function App() {
     ];
   });
 
+  // عروض الأسعار
   const [quotations, setQuotations] = useState(() => {
     const saved = localStorage.getItem('opentik_quotations');
     return saved ? JSON.parse(saved) : [];
   });
 
+  // سندات القبض
   const [vouchers, setVouchers] = useState(() => {
     const saved = localStorage.getItem('opentik_vouchers');
     return saved ? JSON.parse(saved) : [];
   });
 
+  // باقات OpenTik الذكية
   const packages = [
     {
       id: 'PKG-01',
@@ -136,10 +164,22 @@ export default function App() {
         { name: 'بنك بطاريات ليثيوم 10KWh LiFePO4 دورات 6000', qty: 2, price: 1300 },
         { name: 'لوحة قواطع DC/AC ومستلزمات الحماية والربط', qty: 1, price: 400 }
       ]
+    },
+    {
+      id: 'PKG-03',
+      title: 'منظومة الشبكات المؤسسية وتغطية WiFi 6',
+      category: 'الشبكات والـ IT',
+      price: 1150,
+      warranty: 'عام كامل',
+      items: [
+        { name: 'راوتر مايكروتك MikroTik Cloud Router متقدم', qty: 1, price: 280 },
+        { name: 'نقاط وصول سقفية Ruijie Reyee WiFi 6 للأعمال', qty: 4, price: 140 },
+        { name: 'سويتش PoE إدارة كاملة وسيرفر راك مجهز', qty: 1, price: 310 }
+      ]
     }
   ];
 
-  // الحفظ التلقائي
+  // المزامنة والتخزين
   useEffect(() => { localStorage.setItem('opentik_settings', JSON.stringify(systemSettings)); }, [systemSettings]);
   useEffect(() => { localStorage.setItem('opentik_clients', JSON.stringify(clients)); }, [clients]);
   useEffect(() => { localStorage.setItem('opentik_invoices', JSON.stringify(invoices)); }, [invoices]);
@@ -147,6 +187,8 @@ export default function App() {
   useEffect(() => { localStorage.setItem('opentik_vouchers', JSON.stringify(vouchers)); }, [vouchers]);
 
   // النوافذ
+  const [viewClientDetails, setViewClientDetails] = useState(null);
+  const [statementClient, setStatementClient] = useState(null);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [creatingQuotation, setCreatingQuotation] = useState(false);
@@ -182,78 +224,65 @@ export default function App() {
     return '$' + amountUSD.toLocaleString();
   };
 
-  // التأكد من تحميل محرك html2pdf
-  const loadHtml2PdfEngine = () => {
-    return new Promise((resolve) => {
-      if (window.html2pdf) return resolve(window.html2pdf);
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-      script.onload = () => resolve(window.html2pdf);
-      script.onerror = () => resolve(null);
-      document.head.appendChild(script);
-    });
-  };
-
-  // توليد كود Base64 لملف الـ PDF
-  const generatePdfBase64 = async () => {
-    const h2p = await loadHtml2PdfEngine();
-    if (!h2p) {
-      alert('يرجى التحقق من اتصال الإنترنت لتحميل محرك الـ PDF.');
-      return null;
-    }
-
+  // محرك توليد PDF محلي عالي الجودة بدون أي اعتماد خارجي
+  const generateNativePdfBase64 = async () => {
     const element = document.getElementById('unified-printable-document');
     if (!element) {
       alert('لم يتم العثور على قالب المستند.');
       return null;
     }
 
-    const opt = {
-      margin: 8,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    // توليد صورة عالية الدقة للوثيقة
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff'
+    });
 
-    // استخراج Base64
-    const dataUri = await h2p().set(opt).from(element).outputPdf('datauristring');
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    const dataUri = pdf.output('datauristring');
     return dataUri.split(',')[1];
   };
 
-  // ================= 1. مشاركة وإرسال ملف الـ PDF كملف حقيقي في واتساب =================
+  // ================= 1. مشاركة ملف PDF الفعلي عبر واتساب الأعمال أو العادي =================
   const handleSharePdfToWhatsApp = async () => {
-    if (!autoActionModal || !autoActionModal.data || isGeneratingPdf) return;
-    setIsGeneratingPdf(true);
-    showNotification('جاري توليد ملف الـ PDF وإرفاقه...');
+    if (!autoActionModal || !autoActionModal.data || isProcessingPdf) return;
+    setIsProcessingPdf(true);
+    showNotification('جاري إنشاء ملف PDF وإرفاقه...');
 
     try {
-      const base64Data = await generatePdfBase64();
+      const base64Data = await generateNativePdfBase64();
       if (!base64Data) {
-        setIsGeneratingPdf(false);
+        setIsProcessingPdf(false);
         return;
       }
 
       const doc = autoActionModal.data;
-      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client') + '.pdf';
+      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client').replace(/\s+/g, '_') + '.pdf';
 
       if (Capacitor.isNativePlatform()) {
-        // حفظ الملف في ذاكرة الكاش الخاصة بالنظام
+        // كتابة الملف في ذاكرة الكاش الخاصة بالتطبيق
         const savedFile = await Filesystem.writeFile({
           path: fileName,
           data: base64Data,
           directory: Directory.Cache
         });
 
-        // فتح نافذة مشاركة أندرويد مع إرفاق الـ PDF الفعلي
+        // فتح نافذة مشاركة أندرويد لاختيار واتساب وإرسال الملف الفعلي
         await Share.share({
           title: 'فاتورة رسمية - ' + doc.id,
-          text: 'مرفق لكم الفاتورة الرسمية PDF من ' + systemSettings.companyName,
+          text: 'تحية طيبة من ' + systemSettings.companyName + '، مرفق لكم الفاتورة الرسمية PDF رقم ' + doc.id,
           url: savedFile.uri,
-          dialogTitle: 'اختر واتساب لإرسال ملف الـ PDF'
+          dialogTitle: 'اختر واتساب لإرسال مستند الـ PDF'
         });
         showNotification('تم إرفاق ملف الـ PDF بنجاح ✔️');
       } else {
-        // في حال المعاينة عبر المتصفح
+        // للمتصفح
         const blob = await (await fetch('data:application/pdf;base64,' + base64Data)).blob();
         const file = new File([blob], fileName, { type: 'application/pdf' });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -267,57 +296,55 @@ export default function App() {
         alert('حدث خطأ أثناء المشاركة: ' + err.message);
       }
     } finally {
-      setIsGeneratingPdf(false);
+      setIsProcessingPdf(false);
     }
   };
 
-  // ================= 2. تنزيل وحفظ ملف PDF على ذاكرة الهاتف =================
+  // ================= 2. تنزيل وحفظ ملف PDF في ذاكرة الهاتف =================
   const handleDownloadPDF = async () => {
-    if (!autoActionModal || !autoActionModal.data || isGeneratingPdf) return;
-    setIsGeneratingPdf(true);
-    showNotification('جاري حفظ ملف الـ PDF في ذاكرة الهاتف...');
+    if (!autoActionModal || !autoActionModal.data || isProcessingPdf) return;
+    setIsProcessingPdf(true);
+    showNotification('جاري حفظ ملف الـ PDF في الهاتف...');
 
     try {
-      const base64Data = await generatePdfBase64();
+      const base64Data = await generateNativePdfBase64();
       if (!base64Data) {
-        setIsGeneratingPdf(false);
+        setIsProcessingPdf(false);
         return;
       }
 
       const doc = autoActionModal.data;
-      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client') + '.pdf';
+      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client').replace(/\s+/g, '_') + '.pdf';
 
       if (Capacitor.isNativePlatform()) {
-        // حفظ الملف في مجلد المستندات بالهاتف
         const result = await Filesystem.writeFile({
           path: fileName,
           data: base64Data,
           directory: Directory.Documents
         });
 
-        // فتح نافذة خيارات الحفظ والمشاهدة الرسمية
         await Share.share({
           title: 'تم حفظ الفاتورة بنجاح',
-          text: 'تم حفظ الفاتورة في مجلد المستندات (Documents): ' + fileName,
+          text: 'تم حفظ الملف في مجلد المستندات: ' + fileName,
           url: result.uri,
           dialogTitle: 'فتح أو حفظ ملف الـ PDF'
         });
-        showNotification('تم حفظ ملف PDF في مجلد Documents بالهاتف 📄');
+        showNotification('تم حفظ ملف PDF في الهاتف بنجاح 📄');
       } else {
-        // تنزيل المتصفح
-        const h2p = await loadHtml2PdfEngine();
-        const element = document.getElementById('unified-printable-document');
-        h2p().set({ filename: fileName }).from(element).save();
-        showNotification('تم بدء التنزيل بنجاح 📄');
+        const link = document.createElement('a');
+        link.href = 'data:application/pdf;base64,' + base64Data;
+        link.download = fileName;
+        link.click();
+        showNotification('تم تنزيل ملف الـ PDF 📄');
       }
     } catch (err) {
       alert('خطأ أثناء حفظ الملف: ' + err.message);
     } finally {
-      setIsGeneratingPdf(false);
+      setIsProcessingPdf(false);
     }
   };
 
-  // فتح شات واتساب مباشرة
+  // إرسال رسالة واتساب مباشرة
   const handleDirectWhatsApp = (phone, text) => {
     const rawPhone = (phone || '').replace(/[^0-9]/g, '');
     const fullPhone = rawPhone.startsWith('967') ? rawPhone : ('967' + rawPhone);
@@ -366,6 +393,16 @@ export default function App() {
     showNotification('تم إصدار سند القبض بنجاح 💵');
   };
 
+  // حفظ عرض السعر
+  const handleSaveQuotation = (e) => {
+    e.preventDefault();
+    const newQt = { ...quotationForm, id: quotationForm.id || ("QT-" + (300 + quotations.length + 1)) };
+    setQuotations([newQt, ...quotations]);
+    setCreatingQuotation(false);
+    setAutoActionModal({ type: 'quotation', data: newQt });
+    showNotification('تم حفظ عرض السعر بنجاح 📋');
+  };
+
   // تحويل باقة
   const handlePackageAction = (pkg, actionType) => {
     const selectedClient = clients[0] || { name: '', phone: '' };
@@ -405,7 +442,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans" dir="rtl">
       
-      {/* إشعار منبثق */}
+      {/* إشعار منبثق تفاعلي */}
       {toast && (
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-4 py-2 rounded-xl shadow-2xl border border-blue-400 flex items-center gap-2 text-xs font-bold animate-pulse">
           <CheckCircle2 className="w-4 h-4 text-emerald-300" />
@@ -413,7 +450,7 @@ export default function App() {
         </div>
       )}
 
-      {/* الشريط العلوي */}
+      {/* الشريط العلوي الفاخر */}
       <header className="bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -423,7 +460,7 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-extrabold text-white">{systemSettings.companyName}</h1>
-                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-mono font-bold">Pro v2.3</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold">Pro v2.4</span>
               </div>
               <p className="text-[11px] text-slate-400">{systemSettings.tagline}</p>
             </div>
@@ -446,7 +483,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* التبويبات */}
+        {/* التبويبات الرئيسية */}
         <nav className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none text-xs font-semibold">
           <button onClick={() => setActiveTab('dashboard')} className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'dashboard' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300')}>
             <Shield className="w-4 h-4" /> لوحة التحكم
@@ -479,20 +516,20 @@ export default function App() {
         {activeTab === 'dashboard' && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow">
                 <span className="text-xs text-slate-400">إجمالي المبيعات</span>
                 <h3 className="text-xl font-black text-white mt-1 font-mono">{formatMoney(totalSalesUSD)}</h3>
               </div>
-              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow">
                 <span className="text-xs text-slate-400">المحصل الفعلي</span>
                 <h3 className="text-xl font-black text-emerald-400 mt-1 font-mono">{formatMoney(totalCollectedUSD)}</h3>
               </div>
-              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow">
                 <span className="text-xs text-slate-400">الديون المتبقية</span>
                 <h3 className="text-xl font-black text-rose-400 mt-1 font-mono">{formatMoney(totalOutstandingUSD)}</h3>
               </div>
-              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
-                <span className="text-xs text-slate-400">العملاء</span>
+              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow">
+                <span className="text-xs text-slate-400">العملاء والمنشآت</span>
                 <h3 className="text-xl font-black text-cyan-400 mt-1 font-mono">{clients.length}</h3>
               </div>
             </div>
@@ -505,6 +542,92 @@ export default function App() {
               <div className="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 to-emerald-500 h-full rounded-full" style={{ width: collectionRate + '%' }}></div>
               </div>
+            </div>
+
+            {/* أنظمة OpenTik */}
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800">
+              <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-400" /> تخصصات شركة OpenTik للأنظمة الذكية
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
+                  <Camera className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                  <span className="text-xs font-bold block text-white">كاميرات المراقبة</span>
+                  <span className="text-[10px] text-slate-400">IP & Smart AI</span>
+                </div>
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
+                  <Wifi className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
+                  <span className="text-xs font-bold block text-white">الشبكات والـ IT</span>
+                  <span className="text-[10px] text-slate-400">PoE & WiFi 6</span>
+                </div>
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
+                  <Sun className="w-5 h-5 text-amber-400 mx-auto mb-1" />
+                  <span className="text-xs font-bold block text-white">الطاقة البديلة</span>
+                  <span className="text-[10px] text-slate-400">انفرتر وليثيوم</span>
+                </div>
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center">
+                  <Shield className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
+                  <span className="text-xs font-bold block text-white">أنظمة الأمان</span>
+                  <span className="text-[10px] text-slate-400">بصمة وإنذار</span>
+                </div>
+                <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center col-span-2 sm:col-span-1">
+                  <Award className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+                  <span className="text-xs font-bold block text-white">عقود الصيانة SLA</span>
+                  <span className="text-[10px] text-slate-400">دعم دوري</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* العملاء */}
+        {activeTab === 'clients' && (
+          <div className="space-y-4">
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 absolute right-3 top-3 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="ابحث باسم العميل أو الهاتف..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-lg pr-9 pl-3 py-2 text-xs text-white"
+                />
+              </div>
+              <button onClick={() => setNewClientModal(true)} className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 text-xs font-bold flex items-center gap-1.5">
+                <Plus className="w-4 h-4" /> إضافة عميل
+              </button>
+            </div>
+
+            <div className="grid gap-3">
+              {filteredClients.map(c => (
+                <div key={c.id} className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">{c.id}</span>
+                      <h4 className="text-sm font-bold text-white">{c.name}</h4>
+                      <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        الضمان {c.warrantyStatus}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1">المسؤول: {c.contactPerson} | الهاتف: {c.phone} | النظام: {c.system}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => handleDirectWhatsApp(c.phone, 'مرحباً ' + c.name + '، معكم شركة OpenTik للأنظمة الذكية.')} className="p-2 bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-800 rounded-lg">
+                      <MessageCircle className="w-4 h-4" />
+                    </button>
+                    <button 
+                      onClick={() => setStatementClient(c)}
+                      className="px-3 py-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> كشف حساب
+                    </button>
+                    <button onClick={() => setViewClientDetails(c)} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs">
+                      الملف الشامل
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -672,7 +795,50 @@ export default function App() {
 
       </main>
 
-      {/* ================= النافذة الذكية للمعاينة والمشاركة الفورية ================= */}
+      {/* ================= نافذة كشف حساب العميل التفصيلي ================= */}
+      {statementClient && (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-lg w-full p-5 space-y-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-white text-sm">كشف حساب: {statementClient.name}</h3>
+              <button onClick={() => setStatementClient(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between">
+                <div>
+                  <span className="text-slate-400 block">الهاتف: {statementClient.phone}</span>
+                  <span className="text-slate-400 block mt-0.5">النظام: {statementClient.system}</span>
+                </div>
+                <div className="text-left">
+                  <span className="text-slate-400 block">الرصيد المتبقي:</span>
+                  <span className="text-base font-bold text-rose-400 font-mono">{formatMoney(statementClient.balance)}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="font-bold text-slate-300 block">سجل المعاملات والفواتير:</span>
+                {invoices.filter(i => i.client === statementClient.name).map(inv => (
+                  <div key={inv.id} className="p-2.5 bg-slate-950 rounded-lg border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <span className="font-mono text-blue-400 font-bold ml-1">{inv.id}</span>
+                      <span className="text-slate-400 text-[10px]">{inv.date}</span>
+                    </div>
+                    <div className="text-left">
+                      <span className="font-mono text-white block">{"$" + calculateFinalTotal(inv)}</span>
+                      <span className="text-[10px] text-emerald-400">{"المسدد: $" + (inv.paid || 0)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="pt-2 border-t border-slate-800 flex justify-end">
+              <button onClick={() => setStatementClient(null)} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold">إغلاق</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= النافذة الذكية للمعاينة والمشاركة الأصلية ================= */}
       {autoActionModal && autoActionModal.data && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-md w-full p-5 space-y-4 shadow-2xl">
@@ -706,17 +872,17 @@ export default function App() {
               {/* 1. مشاركة ملف PDF الفعلي عبر واتساب */}
               <button 
                 onClick={handleSharePdfToWhatsApp}
-                disabled={isGeneratingPdf}
+                disabled={isProcessingPdf}
                 className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl py-3 font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 text-xs"
               >
                 <Share2 className="w-4 h-4" /> 
-                <span>{isGeneratingPdf ? 'جاري تجهيز الملف...' : 'مشاركة وإرسال ملف الـ PDF عبر واتساب'}</span>
+                <span>{isProcessingPdf ? 'جاري تجهيز الملف...' : 'مشاركة وإرسال ملف الـ PDF عبر واتساب'}</span>
               </button>
 
               {/* 2. حفظ وتنزيل ملف PDF في ذاكرة الهاتف */}
               <button 
                 onClick={handleDownloadPDF}
-                disabled={isGeneratingPdf}
+                disabled={isProcessingPdf}
                 className="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white rounded-xl py-2.5 font-bold transition flex items-center justify-center gap-2 border border-slate-700"
               >
                 <Download className="w-4 h-4 text-cyan-400" /> 
@@ -748,7 +914,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ================= قالب الفاتورة الموحد (موجود دائماً في الشاشة لضمان توليد الـ PDF بنجاح) ================= */}
+      {/* ================= قالب الفاتورة الموحد الفائق الدقة ================= */}
       <div style={{ position: 'fixed', top: 0, left: 0, width: '794px', opacity: 0, pointerEvents: 'none', zIndex: -100 }}>
         {autoActionModal && autoActionModal.data && (
           <div id="unified-printable-document" className="p-8 bg-white text-slate-900 text-right font-sans" dir="rtl">
@@ -879,6 +1045,18 @@ export default function App() {
                 <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white rounded font-bold">حفظ ومعاينة</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* نافذة تفاصيل العميل */}
+      {viewClientDetails && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 rounded-xl border border-slate-800 max-w-md w-full p-5 space-y-3 text-xs">
+            <h3 className="font-bold text-white text-sm">{viewClientDetails.name}</h3>
+            <p className="text-slate-400">الهاتف: {viewClientDetails.phone}</p>
+            <p className="text-slate-400">النظام: {viewClientDetails.system}</p>
+            <button onClick={() => setViewClientDetails(null)} className="w-full bg-slate-800 py-2 rounded text-white font-bold mt-2">إغلاق</button>
           </div>
         </div>
       )}
