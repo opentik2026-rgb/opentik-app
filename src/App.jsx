@@ -31,15 +31,9 @@ import {
   UserCheck,
   CreditCard,
   RotateCcw,
-  AlertTriangle,
-  Send
+  Printer,
+  Copy
 } from 'lucide-react';
-
-import { Filesystem, Directory } from '@capacitor/filesystem';
-import { Share } from '@capacitor/share';
-import { Capacitor } from '@capacitor/core';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 export default function App() {
   const [lang, setLang] = useState('ar');
@@ -48,7 +42,6 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [toast, setToast] = useState(null);
-  const [isProcessingPdf, setIsProcessingPdf] = useState(false);
 
   const showNotification = (msg) => {
     setToast(msg);
@@ -57,7 +50,7 @@ export default function App() {
 
   // 1. إعدادات النظام الشاملة
   const [systemSettings, setSystemSettings] = useState(() => {
-    const saved = localStorage.getItem('opentik_settings_v4');
+    const saved = localStorage.getItem('opentik_settings_clean');
     return saved ? JSON.parse(saved) : {
       companyNameAr: 'شركة OpenTik للأنظمة الذكية',
       companyNameEn: 'OpenTik Smart Systems Enterprise',
@@ -65,11 +58,10 @@ export default function App() {
       taglineEn: 'CCTV Surveillance, Enterprise IT, Biometrics, Solar & SLA Contracts',
       crNumber: '10452-C',
       taxNumber: 'VAT-3004892100',
-      phone: '+967 777 112 233',
+      phone: '777112233',
       email: 'info@opentik-systems.com',
       website: 'www.opentik-systems.com',
-      addressAr: 'شارع الزبيري - تقاطع حدة - صنعاء',
-      addressEn: 'Al-Zubairi St, Hadda Intersection, Sanaa',
+      addressAr: 'شارع الزبيري - المركز التقني - صنعاء',
       defaultTaxRate: 0,
       exchangeRates: { USD: 1, EUR: 0.92, SAR: 3.75, AED: 3.67, YER: 535 },
       bankAccounts: [
@@ -82,14 +74,13 @@ export default function App() {
         { id: 'ENG-02', name: 'م. أحمد الخولاني', phone: '772233445', specialty: 'طاقة بديلة وانفرتر' },
         { id: 'ENG-03', name: 'م. مروان الصبري', phone: '773344556', specialty: 'أنظمة أمان وبصمة' }
       ],
-      defaultWarrantyAr: 'ضمان رسمي معتمد لمدة عام كامل يشمل الاستبدال الفوري وقطع الغيار الأصلية ضد عيوب المصنع.',
-      defaultWarrantyEn: 'Official 1-Year replacement warranty covering genuine parts against manufacturing defects.'
+      defaultWarrantyAr: 'ضمان رسمي معتمد لمدة عام كامل يشمل الاستبدال الفوري وقطع الغيار الأصلية ضد عيوب المصنع.'
     };
   });
 
   // 2. قاعدة بيانات العملاء
   const [clients, setClients] = useState(() => {
-    const saved = localStorage.getItem('opentik_clients_v4');
+    const saved = localStorage.getItem('opentik_clients_clean');
     return saved ? JSON.parse(saved) : [
       { 
         id: 'CL-101', 
@@ -122,7 +113,7 @@ export default function App() {
 
   // 3. الفواتير
   const [invoices, setInvoices] = useState(() => {
-    const saved = localStorage.getItem('opentik_invoices_v4');
+    const saved = localStorage.getItem('opentik_invoices_clean');
     return saved ? JSON.parse(saved) : [
       { 
         id: 'INV-1001', 
@@ -146,20 +137,20 @@ export default function App() {
 
   // 4. عروض الأسعار
   const [quotations, setQuotations] = useState(() => {
-    const saved = localStorage.getItem('opentik_quotations_v4');
+    const saved = localStorage.getItem('opentik_quotations_clean');
     return saved ? JSON.parse(saved) : [];
   });
 
   // 5. سندات القبض
   const [vouchers, setVouchers] = useState(() => {
-    const saved = localStorage.getItem('opentik_vouchers_v4');
+    const saved = localStorage.getItem('opentik_vouchers_clean');
     return saved ? JSON.parse(saved) : [
       { id: 'RV-201', invoiceId: 'INV-1001', client: 'شركة النجم الذهبي للتجارة', phone: '777112233', amount: 500, date: '2026-09-10', method: 'تحويل بنكي', notes: 'دفعة أولى مقدمة مع التوريد' }
     ];
   });
 
   // 6. باقات الكتالوج
-  const [packages, setPackages] = useState([
+  const packages = [
     {
       id: 'PKG-01',
       title: 'منظومة المراقبة الذكية الفائقة (IP 4K AI)',
@@ -197,27 +188,27 @@ export default function App() {
         { name: 'سويتش PoE إدارة كاملة وسيرفر راك مجهز', qty: 1, price: 310 }
       ]
     }
-  ]);
+  ];
 
   // الحفظ التلقائي في الذاكرة
-  useEffect(() => { localStorage.setItem('opentik_settings_v4', JSON.stringify(systemSettings)); }, [systemSettings]);
-  useEffect(() => { localStorage.setItem('opentik_clients_v4', JSON.stringify(clients)); }, [clients]);
-  useEffect(() => { localStorage.setItem('opentik_invoices_v4', JSON.stringify(invoices)); }, [invoices]);
-  useEffect(() => { localStorage.setItem('opentik_quotations_v4', JSON.stringify(quotations)); }, [quotations]);
-  useEffect(() => { localStorage.setItem('opentik_vouchers_v4', JSON.stringify(vouchers)); }, [vouchers]);
+  useEffect(() => { localStorage.setItem('opentik_settings_clean', JSON.stringify(systemSettings)); }, [systemSettings]);
+  useEffect(() => { localStorage.setItem('opentik_clients_clean', JSON.stringify(clients)); }, [clients]);
+  useEffect(() => { localStorage.setItem('opentik_invoices_clean', JSON.stringify(invoices)); }, [invoices]);
+  useEffect(() => { localStorage.setItem('opentik_quotations_clean', JSON.stringify(quotations)); }, [quotations]);
+  useEffect(() => { localStorage.setItem('opentik_vouchers_clean', JSON.stringify(vouchers)); }, [vouchers]);
 
-  // النوافذ المنبثقة التفاعلية
+  // النوافذ المنبثقة
   const [clientModal, setClientModal] = useState({ open: false, mode: 'create', data: null });
   const [invoiceModal, setInvoiceModal] = useState({ open: false, mode: 'create', data: null });
   const [quotationModal, setQuotationModal] = useState({ open: false, mode: 'create', data: null });
   const [voucherModal, setVoucherModal] = useState({ open: false, data: null });
   const [viewClientDetails, setViewClientDetails] = useState(null);
   const [statementClient, setStatementClient] = useState(null);
-  const [autoActionModal, setAutoActionModal] = useState(null); // { type: 'invoice'|'voucher'|'quotation', data: {...} }
+  const [autoActionModal, setAutoActionModal] = useState(null);
   const [newEngineerModal, setNewEngineerModal] = useState(false);
   const [newBankModal, setNewBankModal] = useState(false);
 
-  // النماذج
+  // نماذج الإدخال
   const [clientFormData, setClientFormData] = useState({
     name: '', contactPerson: '', phone: '', address: '', mapCoordinates: '15.3524,44.2075', system: 'كاميرات مراقبة وشبكات', warrantyExpiry: '2027-09-15', devicesText: ''
   });
@@ -229,7 +220,7 @@ export default function App() {
   });
 
   const [quotationFormData, setQuotationFormData] = useState({
-    id: '', client: '', phone: '', system: 'كاميرات مراقبة وشبكات', date: '2026-09-15', validUntil: '2026-09-30',
+    id: '', client: '', phone: '', system: 'كاميرات مراقبة وشبكات', date: '2026-09-15', validUntil: '2026-10-01',
     items: [{ name: '', qty: 1, price: 0 }], notes: ''
   });
 
@@ -237,7 +228,7 @@ export default function App() {
   const [engineerFormData, setEngineerFormData] = useState({ name: '', phone: '', specialty: 'كاميرات مراقبة' });
   const [bankFormData, setBankFormData] = useState({ bank: '', account: '', holder: 'شركة OpenTik' });
 
-  // العمليات الحسابية
+  // الحسابات الرياضية
   const calculateSubtotal = (items) => (items || []).reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0);
   const calculateFinalTotal = (inv) => {
     if (!inv) return 0;
@@ -253,13 +244,13 @@ export default function App() {
   const collectionRate = totalSalesUSD > 0 ? Math.round((totalCollectedUSD / totalSalesUSD) * 100) : 0;
 
   const formatMoney = (amountUSD) => {
-    const rate = systemSettings.exchangeRates[currency] || 1;
-    const converted = Math.round(amountUSD * rate);
+    const rate = systemSettings?.exchangeRates?.[currency] || 1;
+    const converted = Math.round((amountUSD || 0) * rate);
     const symbols = { USD: '$', EUR: '€', SAR: 'ر.س', AED: 'د.إ', YER: 'ريال' };
     return converted.toLocaleString() + ' ' + (symbols[currency] || currency);
   };
 
-  // ================= إجراءات العملاء =================
+  // ================= إجراءات العملاء (شغالة 100%) =================
   const handleOpenCreateClient = () => {
     setClientFormData({
       name: '', contactPerson: '', phone: '', address: '', mapCoordinates: '15.3524,44.2075', system: 'كاميرات مراقبة وشبكات', warrantyExpiry: '2027-09-15', devicesText: 'كاميرات مراقبة بدقة 5MP\nجهاز تسجيل NVR\nسويتش شبكة PoE'
@@ -269,13 +260,13 @@ export default function App() {
 
   const handleOpenEditClient = (client) => {
     setClientFormData({
-      name: client.name,
-      contactPerson: client.contactPerson,
-      phone: client.phone,
-      address: client.address,
+      name: client.name || '',
+      contactPerson: client.contactPerson || '',
+      phone: client.phone || '',
+      address: client.address || '',
       mapCoordinates: client.mapCoordinates || '15.3524,44.2075',
-      system: client.system,
-      warrantyExpiry: client.warrantyExpiry,
+      system: client.system || 'كاميرات مراقبة وشبكات',
+      warrantyExpiry: client.warrantyExpiry || '2027-09-15',
       devicesText: (client.installedDevices || []).join('\n')
     });
     setClientModal({ open: true, mode: 'edit', data: client });
@@ -285,7 +276,7 @@ export default function App() {
     e.preventDefault();
     if (!clientFormData.name || !clientFormData.phone) return;
 
-    const devicesList = clientFormData.devicesText.split('\n').filter(d => d.trim().length > 0);
+    const devicesList = (clientFormData.devicesText || '').split('\n').filter(d => d.trim().length > 0);
 
     if (clientModal.mode === 'create') {
       const newClient = {
@@ -295,19 +286,19 @@ export default function App() {
         phone: clientFormData.phone,
         address: clientFormData.address || 'صنعاء',
         mapCoordinates: clientFormData.mapCoordinates || '15.3524,44.2075',
-        system: clientFormData.system,
-        warrantyExpiry: clientFormData.warrantyExpiry,
+        system: clientFormData.system || 'كاميرات مراقبة وشبكات',
+        warrantyExpiry: clientFormData.warrantyExpiry || '2027-09-15',
         warrantyStatus: 'ساري',
         balance: 0,
         installedDevices: devicesList.length > 0 ? devicesList : ['منظومة ذكية متكاملة']
       };
       setClients([newClient, ...clients]);
-      showNotification('تم إضافة العميل والمنشأة بنجاح ✔️');
+      showNotification('تمت إضافة العميل والمنشأة بنجاح ✔️');
     } else {
       const updatedList = clients.map(c => c.id === clientModal.data.id ? {
         ...c,
         name: clientFormData.name,
-        contactPerson: clientFormData.contactPerson,
+        contactPerson: clientFormData.contactPerson || 'المسؤول',
         phone: clientFormData.phone,
         address: clientFormData.address,
         mapCoordinates: clientFormData.mapCoordinates,
@@ -324,7 +315,7 @@ export default function App() {
   const handleDeleteClient = (clientId) => {
     if (window.confirm('هل أنت متأكد من حذف هذا العميل وسجلاته؟')) {
       setClients(clients.filter(c => c.id !== clientId));
-      showNotification('تم حذف العميل من النظام بنجاح');
+      showNotification('تم حذف العميل بنجاح');
     }
   };
 
@@ -358,13 +349,12 @@ export default function App() {
       const newInv = { ...invoiceFormData, id: invoiceFormData.id || ("INV-" + (1000 + invoices.length + 1)) };
       setInvoices([newInv, ...invoices]);
 
-      // تحديث رصيد العميل
       const due = calculateFinalTotal(newInv) - (newInv.paid || 0);
       setClients(clients.map(c => c.name === newInv.client ? { ...c, balance: (c.balance || 0) + due } : c));
 
       setInvoiceModal({ open: false, mode: 'create', data: null });
       setAutoActionModal({ type: 'invoice', data: newInv });
-      showNotification('تم حفظ الفاتورة بنجاح وجاري فتح خيارات الإرسال ✔️');
+      showNotification('تم حفظ الفاتورة بنجاح وجاري فتح المعاينة ✔️');
     } else {
       setInvoices(invoices.map(i => i.id === invoiceModal.data.id ? invoiceFormData : i));
       setInvoiceModal({ open: false, mode: 'edit', data: null });
@@ -410,8 +400,6 @@ export default function App() {
     };
 
     setVouchers([newVoucher, ...vouchers]);
-
-    // تحديث الفاتورة والعميل
     setInvoices(invoices.map(i => i.id === targetInv.id ? { ...i, paid: (i.paid || 0) + amt } : i));
     setClients(clients.map(c => c.name === targetInv.client ? { ...c, balance: Math.max(0, (c.balance || 0) - amt) } : c));
 
@@ -446,9 +434,9 @@ export default function App() {
     setInvoiceModal({ open: true, mode: 'create', data: null });
   };
 
-  // ================= تحويل الباقة من الكتالوج =================
+  // ================= تحويل باقة الكتالوج =================
   const handlePackageAction = (pkg, actionType) => {
-    const selectedClient = clients[0] || { name: '', phone: '' };
+    const selectedClient = clients[0] || { name: '', phone: '', system: pkg.category };
     if (actionType === 'invoice') {
       setInvoiceFormData({
         id: "INV-" + (1000 + invoices.length + 1),
@@ -478,108 +466,20 @@ export default function App() {
     }
   };
 
-  // ================= توليد ومشاركة ملف الـ PDF المضمون =================
-  const generateNativePdfBase64 = async () => {
-    const element = document.getElementById('unified-printable-document');
-    if (!element) return null;
-
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-    const dataUri = pdf.output('datauristring');
-    return dataUri.split(',')[1];
-  };
-
-  const handleSharePdfToWhatsApp = async () => {
-    if (!autoActionModal || !autoActionModal.data || isProcessingPdf) return;
-    setIsProcessingPdf(true);
-    showNotification('جاري تجهيز وإرفاق ملف PDF...');
-
-    try {
-      const base64Data = await generateNativePdfBase64();
-      if (!base64Data) { setIsProcessingPdf(false); return; }
-
-      const doc = autoActionModal.data;
-      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client').replace(/\s+/g, '_') + '.pdf';
-
-      if (Capacitor.isNativePlatform()) {
-        const savedFile = await Filesystem.writeFile({
-          path: fileName,
-          data: base64Data,
-          directory: Directory.Cache
-        });
-
-        await Share.share({
-          title: doc.id + ' - ' + systemSettings.companyNameAr,
-          text: 'تحية طيبة من شركة OpenTik، مرفق لكم المستند الرسمي PDF رقم ' + doc.id,
-          url: savedFile.uri,
-          dialogTitle: 'مشاركة الفاتورة عبر واتساب'
-        });
-        showNotification('تم إرفاق ملف الـ PDF بنجاح ✔️');
-      } else {
-        const blob = await (await fetch('data:application/pdf;base64,' + base64Data)).blob();
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: 'OpenTik Document' });
-        } else {
-          showNotification('تم تجهيز الملف للمشاركة');
-        }
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError') alert('حدث خطأ: ' + err.message);
-    } finally {
-      setIsProcessingPdf(false);
-    }
-  };
-
-  const handleDownloadPDF = async () => {
-    if (!autoActionModal || !autoActionModal.data || isProcessingPdf) return;
-    setIsProcessingPdf(true);
-    showNotification('جاري حفظ ملف الـ PDF...');
-
-    try {
-      const base64Data = await generateNativePdfBase64();
-      if (!base64Data) { setIsProcessingPdf(false); return; }
-
-      const doc = autoActionModal.data;
-      const fileName = (doc.id || 'Doc') + '_' + (doc.client || 'Client').replace(/\s+/g, '_') + '.pdf';
-
-      if (Capacitor.isNativePlatform()) {
-        const result = await Filesystem.writeFile({
-          path: fileName,
-          data: base64Data,
-          directory: Directory.Documents
-        });
-
-        await Share.share({
-          title: 'تم الحفظ',
-          text: 'تم حفظ الملف في مجلد المستندات: ' + fileName,
-          url: result.uri,
-          dialogTitle: 'فتح ملف الـ PDF'
-        });
-        showNotification('تم حفظ ملف PDF في مجلد Documents 📄');
-      } else {
-        const link = document.createElement('a');
-        link.href = 'data:application/pdf;base64,' + base64Data;
-        link.download = fileName;
-        link.click();
-        showNotification('تم تنزيل ملف الـ PDF 📄');
-      }
-    } catch (err) {
-      alert('حدث خطأ: ' + err.message);
-    } finally {
-      setIsProcessingPdf(false);
-    }
-  };
-
+  // واتساب فوري مباشر
   const handleDirectWhatsApp = (phone, text) => {
     const rawPhone = (phone || '').replace(/[^0-9]/g, '');
     const fullPhone = rawPhone.startsWith('967') ? rawPhone : ('967' + rawPhone);
     window.location.href = "whatsapp://send?phone=" + fullPhone + "&text=" + encodeURIComponent(text);
+  };
+
+  // نسخ تفاصيل الفاتورة
+  const handleCopyInvoiceText = (doc) => {
+    const tot = calculateFinalTotal(doc);
+    const rem = tot - (doc.paid || 0);
+    const text = `فاتورة رقم: ${doc.id}\nالعميل: ${doc.client}\nالنظام: ${doc.system}\nالإجمالي: $${tot}\nالمسدد: $${doc.paid || 0}\nالمتبقي: $${rem}\nشركة OpenTik للأنظمة الذكية`;
+    navigator.clipboard.writeText(text);
+    showNotification('تم نسخ تفاصيل الفاتورة بنجاح 📋');
   };
 
   // تصدير CSV
@@ -607,43 +507,18 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'OpenTik_Full_Backup_' + new Date().toISOString().split('T')[0] + '.json';
+    a.download = 'OpenTik_Backup_' + new Date().toISOString().split('T')[0] + '.json';
     a.click();
     showNotification('تم تنزيل النسخة الاحتياطية بنجاح 💾');
   };
 
-  // استعادة JSON
-  const handleImportBackup = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const data = JSON.parse(event.target.result);
-        if (data.systemSettings) setSystemSettings(data.systemSettings);
-        if (data.clients) setClients(data.clients);
-        if (data.invoices) setInvoices(data.invoices);
-        if (data.quotations) setQuotations(data.quotations);
-        if (data.vouchers) setVouchers(data.vouchers);
-        showNotification('تم استعادة كافة البيانات والعملاء بنجاح 🔄');
-      } catch (err) {
-        alert('الملف المحدد غير صالح.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // إعادة ضبط المصنع
-  const handleResetFactory = () => {
-    if (window.confirm('تحذير: هل أنت متأكد من مسح جميع البيانات وإعادة التطبيق إلى الإعدادات الأولية؟')) {
-      localStorage.clear();
-      window.location.reload();
-    }
-  };
-
-  const filteredClients = clients.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) || c.phone.includes(searchTerm) || c.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // فلترة العملاء الآمنة
+  const filteredClients = clients.filter(c => {
+    const nameMatch = (c.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const phoneMatch = (c.phone || '').includes(searchTerm);
+    const contactMatch = (c.contactPerson || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return nameMatch || phoneMatch || contactMatch;
+  });
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans" dir="rtl">
@@ -656,7 +531,7 @@ export default function App() {
         </div>
       )}
 
-      {/* الرأس الفخم */}
+      {/* الشريط العلوي */}
       <header className="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3 sticky top-0 z-30 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -666,14 +541,13 @@ export default function App() {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-sm sm:text-base font-extrabold text-white">{systemSettings.companyNameAr}</h1>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold border border-emerald-500/30">v3.5 Pro</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-mono font-bold border border-emerald-500/30">Pro v4.0</span>
               </div>
               <p className="text-[10px] sm:text-[11px] text-slate-400">{systemSettings.taglineAr}</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            {/* اختيار العملة */}
             <select 
               value={currency} 
               onChange={e => setCurrency(e.target.value)}
@@ -696,7 +570,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* شريط التنقل */}
+        {/* التبويبات */}
         <nav className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none text-xs font-semibold">
           <button onClick={() => setActiveTab('dashboard')} className={"px-3.5 py-1.5 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : 'bg-slate-800 text-slate-300')}>
             <Shield className="w-3.5 h-3.5" /> لوحة التحكم
@@ -747,7 +621,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* شريط التحصيل والتصدير السريع */}
             <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex-1">
                 <div className="flex justify-between items-center text-xs mb-2">
@@ -768,7 +641,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* مجالات OpenTik */}
+            {/* مجالات وتخصصات OpenTik */}
             <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800">
               <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-blue-400" /> تخصصات ومجالات شركة OpenTik
@@ -795,7 +668,7 @@ export default function App() {
                   <span className="text-[10px] text-slate-400">بصمة وإنذار سرقة</span>
                 </div>
                 <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center col-span-2 sm:col-span-1">
-                  <Award className="w-5 h-5 text-purple-400 mx-auto mb-1" />
+                  <UserCheck className="w-5 h-5 text-purple-400 mx-auto mb-1" />
                   <span className="text-xs font-bold block text-white">عقود الصيانة SLA</span>
                   <span className="text-[10px] text-slate-400">دعم ميداني دوري</span>
                 </div>
@@ -804,7 +677,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= 2. إدارة العملاء ================= */}
+        {/* ================= 2. إدارة العملاء التفاعلية ================= */}
         {activeTab === 'clients' && (
           <div className="space-y-4">
             <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between gap-3">
@@ -843,7 +716,6 @@ export default function App() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5">
-                    {/* زر خريطة Google Maps */}
                     <a 
                       href={"https://maps.google.com/?q=" + (c.mapCoordinates || '15.3524,44.2075')}
                       target="_blank" 
@@ -900,7 +772,7 @@ export default function App() {
             <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
               <div>
                 <h3 className="text-sm font-bold text-white">فواتير التوريد والتركيب</h3>
-                <p className="text-xs text-slate-400">إنشاء وتعديل الفواتير، ومشاركتها كـ PDF رسمي عبر واتساب</p>
+                <p className="text-xs text-slate-400">إنشاء وتعديل الفواتير، وعرض المعاينة الرسمية والمشاركة</p>
               </div>
               <button 
                 onClick={() => handleOpenCreateInvoice()}
@@ -930,7 +802,7 @@ export default function App() {
                           onClick={() => setAutoActionModal({ type: 'invoice', data: inv })}
                           className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs flex items-center gap-1.5 font-bold shadow"
                         >
-                          <Eye className="w-3.5 h-3.5" /> معاينة وإرسال PDF
+                          <Eye className="w-3.5 h-3.5" /> معاينة الفاتورة الرسمية
                         </button>
                         <button 
                           onClick={() => handleOpenCreateVoucher(inv)}
@@ -1025,7 +897,7 @@ export default function App() {
                           onClick={() => setAutoActionModal({ type: 'quotation', data: qt })}
                           className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs flex items-center gap-1 font-bold"
                         >
-                          <Eye className="w-3.5 h-3.5" /> معاينة وإرسال
+                          <Eye className="w-3.5 h-3.5" /> معاينة العرض
                         </button>
                         <button 
                           onClick={() => handleConvertQuotationToInvoice(qt)}
@@ -1084,7 +956,7 @@ export default function App() {
                       onClick={() => setAutoActionModal({ type: 'voucher', data: v })}
                       className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs flex items-center gap-1 font-bold"
                     >
-                      <Eye className="w-3.5 h-3.5" /> معاينة وإرسال
+                      <Eye className="w-3.5 h-3.5" /> معاينة السند
                     </button>
                   </div>
                 </div>
@@ -1143,7 +1015,7 @@ export default function App() {
           </div>
         )}
 
-        {/* ================= 7. قسم إعدادات النظام الشامل والمتكامل ================= */}
+        {/* ================= 7. قسم إعدادات النظام الشامل ================= */}
         {activeTab === 'settings' && (
           <div className="space-y-4 text-xs">
             <div className="bg-slate-900/90 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
@@ -1154,7 +1026,7 @@ export default function App() {
                 <p className="text-slate-400 mt-0.5">التحكم بكافة بيانات المنشأة، البنوك، المهندسين، والنسخ الاحتياطي</p>
               </div>
 
-              {/* تبويبات الإعدادات الفرعية */}
+              {/* تبويبات الإعدادات */}
               <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 <button 
                   onClick={() => setSettingsSubTab('company')}
@@ -1366,20 +1238,28 @@ export default function App() {
                     <input 
                       type="file" 
                       accept=".json"
-                      onChange={handleImportBackup}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          try {
+                            const data = JSON.parse(event.target.result);
+                            if (data.systemSettings) setSystemSettings(data.systemSettings);
+                            if (data.clients) setClients(data.clients);
+                            if (data.invoices) setInvoices(data.invoices);
+                            if (data.quotations) setQuotations(data.quotations);
+                            if (data.vouchers) setVouchers(data.vouchers);
+                            showNotification('تم استعادة كافة البيانات والعملاء بنجاح 🔄');
+                          } catch (err) {
+                            alert('الملف المحدد غير صالح.');
+                          }
+                        };
+                        reader.readAsText(file);
+                      }}
                       className="block w-full text-slate-400 text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-white"
                     />
                   </div>
-                </div>
-
-                <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
-                  <div>
-                    <span className="text-rose-400 font-bold block">إعادة ضبط المصنع الشامل</span>
-                    <span className="text-slate-500 text-[11px]">سيتم حذف كافة البيانات وتفريغ الجداول وإعادة التطبيق للحالة الأولية</span>
-                  </div>
-                  <button onClick={handleResetFactory} className="px-4 py-2 bg-rose-950 hover:bg-rose-900 text-rose-400 border border-rose-800 rounded-lg font-bold">
-                    إعادة ضبط المصنع
-                  </button>
                 </div>
               </div>
             )}
@@ -1401,7 +1281,7 @@ export default function App() {
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <Users className="w-4 h-4 text-blue-400" />
-                {clientModal.mode === 'create' ? 'إضافة منشأة وعميل جديد لـ OpenTik' : ('تعديل بيانات العميل: ' + clientModal.data.name)}
+                {clientModal.mode === 'create' ? 'إضافة منشأة وعميل جديد لـ OpenTik' : ('تعديل بيانات العميل: ' + (clientModal.data?.name || ''))}
               </h3>
               <button onClick={() => setClientModal({ open: false, mode: 'create', data: null })} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -1498,7 +1378,9 @@ export default function App() {
                 <textarea 
                   value={clientFormData.devicesText} 
                   onChange={e => setClientFormData({...clientFormData, devicesText: e.target.value})} 
-                  placeholder="8x كاميرات شبكية Dahua&#10;1x جهاز تسجيل NVR&#10;1x سويتش PoE"
+                  placeholder="8x كاميرات شبكية Dahua
+1x جهاز تسجيل NVR
+1x سويتش PoE"
                   className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white h-20"
                 />
               </div>
@@ -1523,7 +1405,7 @@ export default function App() {
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="font-bold text-white text-sm flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-400" />
-                {invoiceModal.mode === 'create' ? 'إنشاء فاتورة توريد وتركيب جديدة' : ('تعديل الفاتورة: ' + invoiceModal.data.id)}
+                {invoiceModal.mode === 'create' ? 'إنشاء فاتورة توريد وتركيب جديدة' : ('تعديل الفاتورة: ' + (invoiceModal.data?.id || ''))}
               </h3>
               <button onClick={() => setInvoiceModal({ open: false, mode: 'create', data: null })} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
@@ -1663,6 +1545,125 @@ export default function App() {
         </div>
       )}
 
+      {/* ================= النافذة المنبثقة التفاعلية لعروض الأسعار ================= */}
+      {quotationModal.open && (
+        <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-2xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                <FileCheck className="w-4 h-4 text-amber-400" />
+                إنشاء عرض سعر رسمي معتمد
+              </h3>
+              <button onClick={() => setQuotationModal({ open: false, mode: 'create', data: null })} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveQuotationSubmit} className="space-y-3 text-xs">
+              <div className="grid sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="text-slate-400 block mb-1">المنشأة / العميل *</label>
+                  <input 
+                    type="text" 
+                    value={quotationFormData.client} 
+                    onChange={e => setQuotationFormData({...quotationFormData, client: e.target.value})}
+                    placeholder="اسم العميل"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" 
+                    required 
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">رقم الهاتف</label>
+                  <input 
+                    type="text" 
+                    value={quotationFormData.phone} 
+                    onChange={e => setQuotationFormData({...quotationFormData, phone: e.target.value})}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono" 
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">صالح حتى تاريخ</label>
+                  <input 
+                    type="date" 
+                    value={quotationFormData.validUntil} 
+                    onChange={e => setQuotationFormData({...quotationFormData, validUntil: e.target.value})}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-bold text-slate-200">المواصفات والأسعار:</span>
+                  <button 
+                    type="button" 
+                    onClick={() => setQuotationFormData({ ...quotationFormData, items: [...quotationFormData.items, { name: '', qty: 1, price: 0 }] })}
+                    className="px-2.5 py-1 bg-amber-600 text-white rounded-lg text-[11px] font-bold flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" /> إضافة بند
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  {quotationFormData.items.map((it, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+                      <input 
+                        type="text" 
+                        placeholder="اسم الصنف أو التجهيز"
+                        value={it.name}
+                        onChange={e => {
+                          const list = [...quotationFormData.items]; list[idx].name = e.target.value; setQuotationFormData({...quotationFormData, items: list});
+                        }}
+                        className="flex-1 bg-slate-900 border border-slate-700 rounded p-1.5 text-white"
+                        required 
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="الكمية"
+                        value={it.qty}
+                        onChange={e => {
+                          const list = [...quotationFormData.items]; list[idx].qty = Number(e.target.value); setQuotationFormData({...quotationFormData, items: list});
+                        }}
+                        className="w-16 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-center font-mono"
+                      />
+                      <input 
+                        type="number" 
+                        placeholder="السعر ($)"
+                        value={it.price}
+                        onChange={e => {
+                          const list = [...quotationFormData.items]; list[idx].price = Number(e.target.value); setQuotationFormData({...quotationFormData, items: list});
+                        }}
+                        className="w-20 bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-center font-mono"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          if (quotationFormData.items.length > 1) {
+                            setQuotationFormData({ ...quotationFormData, items: quotationFormData.items.filter((_, i) => i !== idx) });
+                          }
+                        }}
+                        className="text-rose-400 p-1 hover:text-rose-300"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button type="button" onClick={() => setQuotationModal({ open: false, mode: 'create', data: null })} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl">
+                  إلغاء
+                </button>
+                <button type="submit" className="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold">
+                  حفظ عرض السعر والمعاينة
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ================= نافذة تسجيل سند قبض ================= */}
       {voucherModal.open && voucherModal.data && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -1717,7 +1718,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ================= نافذة إضافة مهندس جديد ================= */}
+      {/* ================= نافذة إضافة مهندس ================= */}
       {newEngineerModal && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-sm w-full p-5 space-y-4 shadow-2xl">
@@ -1760,7 +1761,7 @@ export default function App() {
               setSystemSettings({ ...systemSettings, bankAccounts: [...systemSettings.bankAccounts, newB] });
               setNewBankModal(false);
               setBankFormData({ bank: '', account: '', holder: 'شركة OpenTik' });
-              showNotification('تم إضافة الحساب البنكي بنجاح ✔️');
+              showNotification('تمت إضافة الحساب البنكي بنجاح ✔️');
             }} className="space-y-3 text-xs">
               <input type="text" placeholder="اسم البنك (مثال: بنك اليمن الدولي)" value={bankFormData.bank} onChange={e => setBankFormData({...bankFormData, bank: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white" required />
               <input type="text" placeholder="رقم الحساب أو الآيبان" value={bankFormData.account} onChange={e => setBankFormData({...bankFormData, account: e.target.value})} className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white font-mono" required />
@@ -1774,7 +1775,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ================= نافذة كشف حساب العميل التفصيلي ================= */}
+      {/* ================= نافذة كشف حساب العميل ================= */}
       {statementClient && (
         <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 overflow-y-auto">
           <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-lg w-full p-5 space-y-4 shadow-2xl">
@@ -1843,16 +1844,16 @@ export default function App() {
         </div>
       )}
 
-      {/* ================= النافذة الذكية للمعاينة والمشاركة الأصلية ================= */}
+      {/* ================= نافذة المعاينة والاعتماد الرسمية التفاعلية ================= */}
       {autoActionModal && autoActionModal.data && (
-        <div className="fixed inset-0 bg-black/85 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-md w-full p-5 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center p-3 z-50 overflow-y-auto">
+          <div className="bg-slate-900 rounded-2xl border border-slate-800 max-w-2xl w-full p-5 space-y-4 max-h-[92vh] overflow-y-auto shadow-2xl">
             
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
                 <h3 className="font-bold text-white text-sm">
-                  معاينة واعتماد: {autoActionModal.data.id}
+                  معاينة واعتماد المستند: {autoActionModal.data.id}
                 </h3>
               </div>
               <button onClick={() => setAutoActionModal(null)} className="text-slate-400 hover:text-white">
@@ -1860,178 +1861,114 @@ export default function App() {
               </button>
             </div>
 
-            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5">
-              <p><strong className="text-slate-400">العميل: </strong>{autoActionModal.data.client}</p>
-              <p><strong className="text-slate-400">الهاتف: </strong>{autoActionModal.data.phone || 'غير مسجل'}</p>
+            {/* بطاقة المستند الرسمية المعروضة على الشاشة للمعاينة */}
+            <div className="bg-white text-slate-900 p-6 rounded-xl shadow font-sans text-xs space-y-4 border border-slate-200">
+              <div className="flex justify-between items-center border-b-2 border-blue-600 pb-3">
+                <div>
+                  <h2 className="text-lg font-black text-blue-700">{systemSettings.companyNameAr}</h2>
+                  <p className="text-[10px] text-slate-600">{systemSettings.taglineAr}</p>
+                </div>
+                <div className="text-left font-mono">
+                  <span className="font-bold text-sm text-slate-800 block">
+                    {autoActionModal.type === 'invoice' ? 'فاتورة ضريبية رسمية' : autoActionModal.type === 'voucher' ? 'سند قبض معتمد' : 'عرض سعر رسمي'}
+                  </span>
+                  <span className="text-blue-600 font-bold">{autoActionModal.data.id}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded border border-slate-200">
+                <div>
+                  <span className="font-bold text-slate-700 block">بيانات العميل:</span>
+                  <p className="font-semibold text-slate-800">{autoActionModal.data.client}</p>
+                  <p className="text-slate-600">{autoActionModal.data.phone}</p>
+                </div>
+                <div className="text-left">
+                  <span className="font-bold text-slate-700 block">التاريخ: {autoActionModal.data.date || '2026-09-15'}</span>
+                  <span className="text-slate-600">المنظومة: {autoActionModal.data.system || 'أنظمة ذكية'}</span>
+                </div>
+              </div>
+
+              {autoActionModal.data.items && (
+                <table className="w-full text-right border-collapse text-[11px]">
+                  <thead>
+                    <tr className="bg-blue-600 text-white font-bold">
+                      <th className="p-1.5 border">#</th>
+                      <th className="p-1.5 border">الصنف / الخدمة</th>
+                      <th className="p-1.5 border text-center">الكمية</th>
+                      <th className="p-1.5 border text-center">السعر ($)</th>
+                      <th className="p-1.5 border text-center">الإجمالي ($)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {autoActionModal.data.items.map((it, idx) => (
+                      <tr key={idx} className="border-b border-slate-200">
+                        <td className="p-1.5 border text-center font-mono">{idx + 1}</td>
+                        <td className="p-1.5 border font-semibold">{it.name}</td>
+                        <td className="p-1.5 border text-center font-mono">{it.qty}</td>
+                        <td className="p-1.5 border text-center font-mono">{"$" + it.price}</td>
+                        <td className="p-1.5 border text-center font-mono font-bold">{"$" + (it.qty * it.price)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
               {autoActionModal.type === 'invoice' && (
-                <div className="pt-1 border-t border-slate-800 flex justify-between font-bold">
-                  <span>الإجمالي:</span>
-                  <span className="font-mono text-emerald-400">{formatMoney(calculateFinalTotal(autoActionModal.data))}</span>
+                <div className="flex justify-between items-center bg-slate-50 p-3 rounded border border-slate-200 font-bold">
+                  <span>المبلغ الإجمالي المستحق:</span>
+                  <span className="text-base text-blue-700 font-mono">{"$" + calculateFinalTotal(autoActionModal.data)}</span>
+                </div>
+              )}
+
+              {autoActionModal.type === 'voucher' && (
+                <div className="flex justify-between items-center bg-slate-50 p-3 rounded border border-slate-200 font-bold">
+                  <span>المبلغ المقبوض:</span>
+                  <span className="text-base text-emerald-700 font-mono">{"$" + autoActionModal.data.amount}</span>
                 </div>
               )}
             </div>
 
-            {/* الأزرار التفاعلية الأصلية */}
-            <div className="space-y-2.5 pt-1 text-xs">
-              <button 
-                onClick={handleSharePdfToWhatsApp}
-                disabled={isProcessingPdf}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl py-3 font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 text-xs"
-              >
-                <Share2 className="w-4 h-4" /> 
-                <span>{isProcessingPdf ? 'جاري تجهيز الملف...' : 'مشاركة وإرسال ملف الـ PDF عبر واتساب'}</span>
-              </button>
-
-              <button 
-                onClick={handleDownloadPDF}
-                disabled={isProcessingPdf}
-                className="w-full bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white rounded-xl py-2.5 font-bold transition flex items-center justify-center gap-2 border border-slate-700"
-              >
-                <Download className="w-4 h-4 text-cyan-400" /> 
-                <span>تنزيل وحفظ ملف PDF على الهاتف</span>
-              </button>
-
+            {/* أزرار الإجراءات التفاعلية المباشرة */}
+            <div className="grid sm:grid-cols-3 gap-2 pt-1 text-xs">
               <button 
                 onClick={() => {
                   const doc = autoActionModal.data;
                   const tot = calculateFinalTotal(doc);
                   const rem = tot - (doc.paid || 0);
-                  const msg = 'مرحباً ' + doc.client + '، تحية من ' + systemSettings.companyNameAr + '.\nفاتورة رقم: ' + doc.id + ' بإجمالي: $' + tot + ' والمتبقي: $' + rem;
+                  const msg = `مرحباً بالعميل العزيز: ${doc.client}\nتحية طيبة من شركة OpenTik للأنظمة الذكية 🛡️\n\nتفاصيل الفاتورة الرسمية: ${doc.id}\nالمنظومة: ${doc.system}\nالإجمالي: $${tot}\nالمسدد: $${doc.paid || 0}\nالمتبقي المستحق: $${rem}\n\nشكراً لتعاملكم معنا.`;
                   handleDirectWhatsApp(doc.phone, msg);
                 }}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl py-2 font-medium transition flex items-center justify-center gap-1.5 border border-slate-800 text-[11px]"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl py-2.5 font-bold transition flex items-center justify-center gap-1.5 shadow"
               >
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                <span>مراسلة العميل بنص الفاتورة (فتح شات الواتساب مباشرة)</span>
+                <MessageCircle className="w-4 h-4" /> 
+                <span>إرسال عبر واتساب</span>
+              </button>
+
+              <button 
+                onClick={() => handleCopyInvoiceText(autoActionModal.data)}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl py-2.5 font-bold transition flex items-center justify-center gap-1.5"
+              >
+                <Copy className="w-4 h-4 text-cyan-400" /> 
+                <span>نسخ تفاصيل الفاتورة</span>
+              </button>
+
+              <button 
+                onClick={() => window.print()}
+                className="bg-blue-600 hover:bg-blue-500 text-white rounded-xl py-2.5 font-bold transition flex items-center justify-center gap-1.5 shadow"
+              >
+                <Printer className="w-4 h-4" /> 
+                <span>طباعة / حفظ PDF</span>
               </button>
             </div>
 
             <div className="pt-2 border-t border-slate-800 flex justify-end">
               <button onClick={() => setAutoActionModal(null)} className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold">
-                إغلاق
+                إغلاق المعاينة
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ================= قالب الفاتورة الموحد الفائق الدقة (موجود خارج الشاشة بدون إخفاء لالتقاطه 100%) ================= */}
-      <div style={{ position: 'absolute', left: '-9999px', top: 0, width: '794px', background: '#ffffff', color: '#0f172a' }}>
-        {autoActionModal && autoActionModal.data && (
-          <div id="unified-printable-document" className="p-8 bg-white text-slate-900 text-right font-sans" dir="rtl">
-            
-            {/* Header */}
-            <div className="flex justify-between items-center border-b-2 border-blue-600 pb-4 mb-5">
-              <div>
-                <h1 className="text-2xl font-black text-blue-700">{systemSettings.companyNameAr}</h1>
-                <h2 className="text-sm font-bold text-slate-600 tracking-wider font-sans">{systemSettings.companyNameEn}</h2>
-                <p className="text-[11px] text-slate-500 font-mono mt-1">السجل التجاري: {systemSettings.crNumber} | الرقم الضريبي: {systemSettings.taxNumber}</p>
-              </div>
-              <div className="text-left font-mono">
-                <span className="text-xl font-bold text-slate-900 block font-sans">
-                  {autoActionModal.type === 'invoice' ? 'TAX INVOICE / فاتورة ضريبية' : 'OFFICIAL QUOTATION / عرض سعر'}
-                </span>
-                <span className="text-xs text-blue-600 font-bold">رقم المستند: {autoActionModal.data.id}</span>
-                <p className="text-xs text-slate-500">التاريخ: {autoActionModal.data.date || '2026-09-15'}</p>
-              </div>
-            </div>
-
-            {/* تفاصيل العميل والبنوك */}
-            <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg mb-5 border border-slate-200 text-xs">
-              <div>
-                <span className="font-bold text-slate-800 block mb-1">بيانات العميل والمنشأة:</span>
-                <p className="font-semibold text-slate-800">{autoActionModal.data.client}</p>
-                <p className="text-slate-600">الهاتف: {autoActionModal.data.phone}</p>
-                <p className="text-slate-600">المنظومة: {autoActionModal.data.system || 'أنظمة ذكية'}</p>
-              </div>
-              <div className="text-left font-mono">
-                <span className="font-bold text-slate-800 block mb-1 font-sans">الحسابات البنكية المعتمدة:</span>
-                {systemSettings.bankAccounts.slice(0, 3).map(b => (
-                  <p key={b.id} className="text-slate-600">{b.bank}: {b.account}</p>
-                ))}
-              </div>
-            </div>
-
-            {/* جدول الأصناف */}
-            {autoActionModal.data.items && (
-              <table className="w-full text-right border-collapse mb-5 text-xs">
-                <thead>
-                  <tr className="bg-blue-600 text-white font-bold">
-                    <th className="p-2 border">#</th>
-                    <th className="p-2 border">البيان والمواصفات</th>
-                    <th className="p-2 border text-center">الكمية</th>
-                    <th className="p-2 border text-center">سعر الوحدة ($)</th>
-                    <th className="p-2 border text-center">الإجمالي ($)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {autoActionModal.data.items.map((it, idx) => (
-                    <tr key={idx} className="border-b border-slate-200">
-                      <td className="p-2 border text-center font-mono">{idx + 1}</td>
-                      <td className="p-2 border font-semibold">{it.name}</td>
-                      <td className="p-2 border text-center font-mono">{it.qty}</td>
-                      <td className="p-2 border text-center font-mono">{"$" + it.price}</td>
-                      <td className="p-2 border text-center font-mono font-bold">{"$" + (it.qty * it.price)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-
-            {/* الملخص المالي */}
-            <div className="flex justify-between items-start mb-6">
-              <div className="w-1/2 p-3 bg-slate-50 rounded border border-slate-200 text-xs">
-                <span className="font-bold block mb-1">الشروط والضمان المعتمد:</span>
-                <p className="text-slate-600 leading-relaxed">{autoActionModal.data.notes || systemSettings.defaultWarrantyAr}</p>
-              </div>
-
-              {autoActionModal.type === 'invoice' && (
-                <div className="w-1/3 space-y-1 text-xs">
-                  <div className="flex justify-between border-b pb-1">
-                    <span className="text-slate-600">المجموع الفرعي:</span>
-                    <span className="font-bold font-mono">{"$" + calculateSubtotal(autoActionModal.data.items)}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-1 text-sm font-black">
-                    <span>الإجمالي المستحق:</span>
-                    <span className="text-blue-700 font-mono">{"$" + calculateFinalTotal(autoActionModal.data)}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-1 text-emerald-700">
-                    <span>المسدد:</span>
-                    <span className="font-bold font-mono">{"$" + (autoActionModal.data.paid || 0)}</span>
-                  </div>
-                  <div className="flex justify-between pt-1 font-bold text-sm text-rose-600">
-                    <span>المتبقي المطلوب:</span>
-                    <span className="font-mono">{"$" + (calculateFinalTotal(autoActionModal.data) - (autoActionModal.data.paid || 0))}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* التوقيع والختم والباركود */}
-            <div className="flex justify-between items-center pt-4 border-t border-slate-300 text-xs">
-              <div className="text-center">
-                <p className="text-slate-500 mb-6">توقيع المستلم والاعتماد</p>
-                <p className="text-slate-400">....................................</p>
-              </div>
-
-              <div className="text-center flex flex-col items-center">
-                <div className="w-16 h-16 border-2 border-slate-800 p-1 bg-slate-50 flex items-center justify-center font-mono text-[8px] text-center leading-tight">
-                  [QR-CODE]<br/>OPENTIK<br/>{autoActionModal.data.id}
-                </div>
-                <span className="text-[9px] text-slate-500 mt-1 font-mono">فاتورة إلكترونية معتمدة</span>
-              </div>
-
-              <div className="text-center">
-                <div className="w-24 h-24 rounded-full border-2 border-dashed border-blue-700 flex flex-col items-center justify-center text-blue-700 font-bold p-2 rotate-[-12deg]">
-                  <span className="text-[10px]">OpenTik Systems</span>
-                  <span className="text-[12px] font-black">APPROVED</span>
-                  <span className="text-[8px]">Finance Dept</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
     </div>
   );
