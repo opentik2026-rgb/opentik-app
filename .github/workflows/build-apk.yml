@@ -24,36 +24,39 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 4. تثبيت حزم المشروع
+      - name: 4. تثبيت مفتاح التوقيع الدائم الموحد
+        run: |
+          mkdir -p ~/.android
+          curl -s -L "https://raw.githubusercontent.com/CoreProc/android-debug-keystore/master/debug.keystore" -o ~/.android/debug.keystore
+
+      - name: 5. تثبيت حزم المشروع
         run: npm install
 
-      - name: 5. بناء ملفات الويب
+      - name: 6. بناء ملفات الويب
         run: npm run build
 
-      - name: 6. مزامنة منصة أندرويد
+      - name: 7. مزامنة منصة أندرويد
         run: |
           npx cap add android || true
           npx cap sync android
 
-      - name: 7. تثبيت مفتاح التوقيع الدائم الموحد (Fixed Keystore)
+      - name: 8. نسخ المفتاح الدائم داخل مجلد الأندرويد
         run: |
-          mkdir -p ~/.android
-          curl -s -L "https://raw.githubusercontent.com/CoreProc/android-debug-keystore/master/debug.keystore" -o ~/.android/debug.keystore
           mkdir -p android/app
           cp ~/.android/debug.keystore android/app/debug.keystore
 
-      - name: 8. رفع رقم الإصدار تلقائياً مع كل بناء (Auto Increment Version)
+      - name: 9. رفع رقم الإصدار تلقائياً (تحديث إجباري فوق النسخة الحالية)
         run: |
           sed -i 's/versionCode 1/versionCode ${{ github.run_number }}/g' android/app/build.gradle
-          sed -i 's/versionName "1.0"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
+          sed -i 's/versionName "1.0"/versionName "2.3.${{ github.run_number }}"/g' android/app/build.gradle
 
-      - name: 9. تجميع ملف الـ APK
+      - name: 10. تجميع ملف الـ APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 10. رفع ملف الـ APK للتحميل
+      - name: 11. رفع ملف الـ APK للتحميل
         uses: actions/upload-artifact@v4
         with:
           name: OpenTik-CRM-APK
