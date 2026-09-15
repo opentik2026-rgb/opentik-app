@@ -18,40 +18,45 @@ jobs:
         with:
           node-version: 20
 
-      - name: 3. إعداد بيئة Java 17
+      - name: 3. إعداد Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 4. تثبيت حزم المشروع
-        run: npm install
-
-      - name: 5. بناء ملفات الويب
-        run: npm run build
-
-      - name: 6. مزامنة منصة الأندرويد
-        run: |
-          npx cap add android
-          npx cap sync android
-
-      - name: 7. تثبيت مفتاح التوقيع الدائم الموحد لمنع تعارض الحزمة نهائياً
+      - name: 4. تثبيت مفتاح التوقيع الموحد الدائم
         run: |
           mkdir -p ~/.android
           curl -s -L "https://raw.githubusercontent.com/CoreProc/android-debug-keystore/master/debug.keystore" -o ~/.android/debug.keystore
 
-      - name: 8. رفع رقم إصدار التطبيق تلقائياً (Auto Versioning)
+      - name: 5. تثبيت حزم المشروع
+        run: npm install
+
+      - name: 6. بناء ملفات الويب
+        run: npm run build
+
+      - name: 7. مزامنة Capacitor مع أندرويد
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: 8. نسخ المفتاح الدائم داخل منصة أندرويد
+        run: |
+          mkdir -p android/app
+          cp ~/.android/debug.keystore android/app/debug.keystore
+
+      - name: 9. رفع رقم الإصدار تلقائياً (Auto Version Code)
         run: |
           sed -i 's/versionCode 1/versionCode ${{ github.run_number }}/g' android/app/build.gradle
           sed -i 's/versionName "1.0"/versionName "1.0.${{ github.run_number }}"/g' android/app/build.gradle
 
-      - name: 9. تجميع ملف الـ APK
+      - name: 10. تجميع ملف APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: 10. رفع ملف الـ APK للتحميل
+      - name: 11. رفع ملف الـ APK للتحميل
         uses: actions/upload-artifact@v4
         with:
           name: OpenTik-CRM-APK
