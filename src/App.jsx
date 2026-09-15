@@ -12,14 +12,79 @@ import {
   Download, 
   Search, 
   CheckCircle, 
+  CheckCircle2,
   X, 
-  Eye
+  Eye, 
+  Printer, 
+  Clock, 
+  AlertCircle, 
+  Phone, 
+  DollarSign, 
+  Layers, 
+  Send,
+  Building,
+  Award
 } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('invoices');
-  
-  // بيانات الفواتير مع بنود تفصيلية
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSystem, setFilterSystem] = useState('all');
+
+  // بيانات العملاء الشاملة مع قائمة الأجهزة والضمان
+  const [clients, setClients] = useState([
+    { 
+      id: 'CL-101', 
+      name: 'شركة النجم الذهبي للتجارة', 
+      contactPerson: 'أ. محمد العريقي',
+      phone: '777112233', 
+      address: 'شارع الزبيري - صنعاء',
+      system: 'كاميرات مراقبة وشبكات', 
+      warrantyExpiry: '2027-09-15',
+      warrantyStatus: 'ساري',
+      balance: 1450,
+      installedDevices: [
+        '8x كاميرات شبكية Dahua 5MP IP AI',
+        '1x جهاز تسجيل NVR 16-Channel 4K',
+        '1x سويتش 16Port PoE Gigabit',
+        '1x كابينة راك 6U مع وحدة تبريد'
+      ]
+    },
+    { 
+      id: 'CL-102', 
+      name: 'مستشفى الأمل التخصصي', 
+      contactPerson: 'د. خالد عبدالجليل',
+      phone: '771223344', 
+      address: 'شارع تعز - تقاطع الستين',
+      system: 'طاقة بديلة وانفرتر', 
+      warrantyExpiry: '2028-09-12',
+      warrantyStatus: 'ساري',
+      balance: 0,
+      installedDevices: [
+        '1x انفرتر هجين Deye 12KW Three-Phase',
+        '2x بنك بطاريات ليثيوم 48V 100Ah',
+        '1x لوحة قواطع حماية تيار مستمر ومتناوب'
+      ]
+    },
+    { 
+      id: 'CL-103', 
+      name: 'مجمع العواضي التجاري', 
+      contactPerson: 'م. مروان الصبري',
+      phone: '773445566', 
+      address: 'حي الدائري الغربي',
+      system: 'أنظمة إنذار وتحكم بالدخول', 
+      warrantyExpiry: '2026-11-20',
+      warrantyStatus: 'ساري',
+      balance: 3200,
+      installedDevices: [
+        '4x أجهزة بصمة وجه وبطاقة ZKTeco',
+        '4x أقفال مغناطيسية للأبواب الزجاجية',
+        '1x منظومة إنذار سرقة مع حساسات حركة'
+      ]
+    }
+  ]);
+
+  // بيانات الفواتير
   const [invoices, setInvoices] = useState([
     { 
       id: 'INV-1001', 
@@ -27,324 +92,1202 @@ export default function App() {
       phone: '777112233',
       date: '2026-09-10', 
       system: 'كاميرات مراقبة وشبكات',
+      taxRate: 0,
+      discount: 100,
       items: [
-        { name: 'كاميرا شبكية IP بدقة 5MP ذكية', qty: 8, price: 65 },
-        { name: 'جهاز تسجيل NVR 16CH مع قرص 4TB', qty: 1, price: 320 },
-        { name: 'سويتش شبكة 16Port PoE ومستلزمات', qty: 1, price: 180 },
-        { name: 'تمديد وتركيب وبرمجة المنظومة', qty: 1, price: 250 }
+        { name: 'كاميرا شبكية IP بدقة 5MP ذكية مع ديدكشن', qty: 8, price: 65 },
+        { name: 'جهاز تسجيل NVR 16CH مع قرص تخزين 4TB', qty: 1, price: 320 },
+        { name: 'سويتش شبكة 16Port PoE ومستلزمات الربط', qty: 1, price: 180 },
+        { name: 'تمديد وتركيب وبرمجة وتدريب الكادر', qty: 1, price: 250 }
       ],
       paid: 1000,
-      notes: 'ضمان لمدة عام كامل على الأجهزة ضد عيوب التصنيع.'
+      notes: 'الضمان لمدة عام كامل يشمل القطع والاستبدال الفوري ضد عيوب المصنع.'
     },
     { 
       id: 'INV-1002', 
       client: 'مستشفى الأمل التخصصي', 
       phone: '771223344',
       date: '2026-09-12', 
-      system: 'طاقة شمسية وانفرتر',
+      system: 'طاقة بديلة وانفرتر',
+      taxRate: 0,
+      discount: 0,
       items: [
-        { name: 'انفرتر هجين Deye قدرة 12KW', qty: 1, price: 2100 },
-        { name: 'بطارية ليثيوم 5KW مع قواطع الحماية', qty: 2, price: 1400 },
-        { name: 'أعمال التركيب وتوزيع الأحمال', qty: 1, price: 700 }
+        { name: 'انفرتر هجين داي Deye قدرة 12KW ثلاثي الطور', qty: 1, price: 2100 },
+        { name: 'بطارية ليثيوم 5KW مع نظام إدارة البطاريات BMS', qty: 2, price: 1400 },
+        { name: 'كابلات نحاسية وقواطع حماية وتوزيع أحمال', qty: 1, price: 700 }
       ],
       paid: 5600,
-      notes: 'تم التسليم والفحص بحالة ممتازة.'
+      notes: 'تم فحص وتشغيل المنظومة تحت الحمل الأقصى بنجاح تام.'
     }
   ]);
 
-  // حالة التحكم بالنافذة المنبثقة للتعديل أو المعاينة
+  // بيانات سندات القبض المالية
+  const [vouchers, setVouchers] = useState([
+    { id: 'RV-201', invoiceId: 'INV-1001', client: 'شركة النجم الذهبي للتجارة', amount: 1000, date: '2026-09-10', method: 'تحويل بنكي', notes: 'دفعة أولى مقدمة مع التوريد' },
+    { id: 'RV-202', invoiceId: 'INV-1002', client: 'مستشفى الأمل التخصصي', amount: 5600, date: '2026-09-12', method: 'شيك مصرفي', notes: 'تسوية حساب منظومة الطاقة بالكامل' }
+  ]);
+
+  // تذاكر الدعم الفني والعمليات الميدانية
+  const [tickets, setTickets] = useState([
+    { id: 'TK-501', client: 'شركة النجم الذهبي للتجارة', issue: 'فقدان إشارة الكاميرا رقم 3 في البوابة الخلفية', priority: 'عالية', engineer: 'م. سامي الحمادي', visitDate: '2026-09-16', status: 'قيد التنفيذ' },
+    { id: 'TK-502', client: 'مجمع العواضي التجاري', issue: 'برمجة وإسناد الصلاحيات لجهاز البصمة الرئيسي', priority: 'متوسطة', engineer: 'م. أحمد الخولاني', visitDate: '2026-09-17', status: 'جديدة' },
+  ]);
+
+  // باقات وأنظمة OpenTik الجاهزة في الكتالوج
+  const [packages] = useState([
+    {
+      id: 'PKG-01',
+      title: 'منظومة المراقبة الذكية الفائقة (IP 4K AI)',
+      category: 'كاميرات المراقبة',
+      icon: 'camera',
+      price: 1350,
+      warranty: 'عامان ضمان استبدال',
+      items: [
+        { name: 'كاميرا شبكية IP بدقة 4K مع خاصية التعرف الذكي', qty: 8, price: 85 },
+        { name: 'جهاز تسجيل NVR 16CH مع قرص 6TB WD Purple', qty: 1, price: 420 },
+        { name: 'سويتش شبكة 16Port PoE Gigabit عالي التحمل', qty: 1, price: 150 },
+        { name: 'كابينة وتمديدات وخدمة التركيب والبرمجة', qty: 1, price: 100 }
+      ]
+    },
+    {
+      id: 'PKG-02',
+      title: 'محطة الطاقة البديلة الهجينة (Hybrid Solar 10KW)',
+      category: 'الطاقة البديلة',
+      icon: 'sun',
+      price: 4900,
+      warranty: '5 سنوات على البطاريات',
+      items: [
+        { name: 'انفرتر ذكي Deye Hybrid بقدرة 10KW متطور', qty: 1, price: 1900 },
+        { name: 'بنك بطاريات ليثيوم 10KWh LiFePO4 دورات شحن 6000', qty: 2, price: 1300 },
+        { name: 'لوحة قواطع DC/AC ومستلزمات الحماية والربط', qty: 1, price: 400 }
+      ]
+    },
+    {
+      id: 'PKG-03',
+      title: 'منظومة الشبكات المؤسسية وتغطية WiFi 6',
+      category: 'الشبكات والـ IT',
+      icon: 'wifi',
+      price: 1150,
+      warranty: 'عام كامل',
+      items: [
+        { name: 'راوتر مايكروتك MikroTik Cloud Router متقدم', qty: 1, price: 280 },
+        { name: 'نقاط وصول سقفية Ruijie Reyee WiFi 6 للأعمال', qty: 4, price: 140 },
+        { name: 'سويتش PoE إدارة كاملة وسيرفر راك مجهز', qty: 1, price: 310 }
+      ]
+    },
+    {
+      id: 'PKG-04',
+      title: 'نظام ضبط الدخول والتحكم بالأبواب (Access Control)',
+      category: 'أنظمة الأمان والتحكم',
+      icon: 'shield',
+      price: 850,
+      warranty: 'عام كامل',
+      items: [
+        { name: 'محطة بصمة وجه وبصمة إصبع وكارت ذكي للدوام', qty: 2, price: 250 },
+        { name: 'قفل كهرومغناطيسي 280KG مع زر خروج طوارئ', qty: 2, price: 110 },
+        { name: 'برنامج إدارة الدوام ومتابعة الحضور الآلي', qty: 1, price: 130 }
+      ]
+    }
+  ]);
+
+  // الحالات المنبثقة (Modals)
+  const [viewClientDetails, setViewClientDetails] = useState(null);
   const [editingInvoice, setEditingInvoice] = useState(null);
+  const [creatingInvoice, setCreatingInvoice] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState(null);
+  const [creatingVoucher, setCreatingVoucher] = useState(null);
+  const [creatingTicket, setCreatingTicket] = useState(false);
+  const [newClientModal, setNewClientModal] = useState(false);
 
-  // حساب إجماليات الفاتورة
-  const calculateTotal = (items) => {
-    return items.reduce((sum, item) => sum + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0);
+  // النماذج
+  const [newClientForm, setNewClientForm] = useState({
+    name: '', contactPerson: '', phone: '', address: '', system: 'كاميرات مراقبة وشبكات', warrantyExpiry: '2027-09-15', devices: ''
+  });
+
+  const [invoiceForm, setInvoiceForm] = useState({
+    id: '', client: '', phone: '', system: 'كاميرات مراقبة وشبكات', date: '2026-09-15',
+    items: [{ name: '', qty: 1, price: 0 }],
+    taxRate: 0, discount: 0, paid: 0, notes: ''
+  });
+
+  const [voucherForm, setVoucherForm] = useState({
+    amount: '', method: 'نقداً', notes: ''
+  });
+
+  const [ticketForm, setTicketForm] = useState({
+    client: '', issue: '', priority: 'عالية', engineer: 'م. سامي الحمادي', visitDate: '2026-09-16'
+  });
+
+  // العمليات الحسابية
+  const calculateSubtotal = (items) => {
+    return items.reduce((acc, item) => acc + ((Number(item.qty) || 0) * (Number(item.price) || 0)), 0);
   };
 
-  // فتح نافذة تعديل فاتورة
-  const handleEditClick = (inv) => {
-    setEditingInvoice(JSON.parse(JSON.stringify(inv))); // نسخة عميقة للتعديل
+  const calculateFinalTotal = (invoice) => {
+    const sub = calculateSubtotal(invoice.items);
+    const afterDiscount = sub - (Number(invoice.discount) || 0);
+    const tax = afterDiscount * ((Number(invoice.taxRate) || 0) / 100);
+    return afterDiscount + tax;
   };
 
-  // حفظ التعديلات
-  const handleSaveInvoice = (e) => {
-    e.preventDefault();
-    setInvoices(invoices.map(inv => inv.id === editingInvoice.id ? editingInvoice : inv));
-    setEditingInvoice(null);
-  };
+  const totalSales = invoices.reduce((acc, inv) => acc + calculateFinalTotal(inv), 0);
+  const totalCollected = vouchers.reduce((acc, v) => acc + (Number(v.amount) || 0), 0);
+  const totalOutstanding = totalSales - totalCollected;
+  const collectionRate = totalSales > 0 ? Math.round((totalCollected / totalSales) * 100) : 0;
 
-  // تغيير قيم بنود الفاتورة أثناء التعديل
-  const handleItemChange = (index, field, value) => {
-    const updatedItems = [...editingInvoice.items];
-    updatedItems[index][field] = value;
-    setEditingInvoice({ ...editingInvoice, items: updatedItems });
-  };
-
-  // إضافة بند جديد داخل الفاتورة
-  const handleAddItem = () => {
-    setEditingInvoice({
-      ...editingInvoice,
-      items: [...editingInvoice.items, { name: '', qty: 1, price: 0 }]
-    });
-  };
-
-  // حذف بند
-  const handleRemoveItem = (index) => {
-    const updatedItems = editingInvoice.items.filter((_, i) => i !== index);
-    setEditingInvoice({ ...editingInvoice, items: updatedItems });
-  };
-
-  // تصدير الفاتورة إلى ملف PDF على الهاتف
-  const handleExportPDF = (invoice) => {
-    const element = document.getElementById('printable-invoice-' + invoice.id);
+  // تصدير PDF مباشر
+  const handleExportPDF = (elementId, fileName) => {
+    const element = document.getElementById(elementId);
     if (!element || !window.html2pdf) {
-      alert('جاري تحميل أداة الـ PDF، يرجى المحاولة بعد لحظات...');
+      alert('جاري تحميل محرك الـ PDF، حاول مجدداً...');
       return;
     }
-
     const opt = {
       margin: 10,
-      filename: invoice.id + '_' + invoice.client + '.pdf',
+      filename: fileName + '.pdf',
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-
     window.html2pdf().set(opt).from(element).save();
   };
 
+  // تحويل باقة جاهزة إلى فاتورة عميل فورية
+  const handleConvertPackageToInvoice = (pkg) => {
+    setInvoiceForm({
+      id: "INV-" + (1000 + invoices.length + 1),
+      client: clients[0] ? clients[0].name : '',
+      phone: clients[0] ? clients[0].phone : '',
+      system: pkg.category,
+      date: '2026-09-15',
+      items: JSON.parse(JSON.stringify(pkg.items)),
+      taxRate: 0,
+      discount: 0,
+      paid: 0,
+      notes: "باقة نظام معتمدة من OpenTik - " + pkg.title + " (" + pkg.warranty + ")."
+    });
+    setCreatingInvoice(true);
+  };
+
+  // حفظ العميل الجديد
+  const handleSaveNewClient = (e) => {
+    e.preventDefault();
+    if (!newClientForm.name || !newClientForm.phone) return;
+    const clientRecord = {
+      id: "CL-" + (100 + clients.length + 1),
+      name: newClientForm.name,
+      contactPerson: newClientForm.contactPerson || 'المسؤول',
+      phone: newClientForm.phone,
+      address: newClientForm.address || 'صنعاء',
+      system: newClientForm.system,
+      warrantyExpiry: newClientForm.warrantyExpiry,
+      warrantyStatus: 'ساري',
+      balance: 0,
+      installedDevices: newClientForm.devices ? newClientForm.devices.split('\n') : ['منظومة ذكية متكاملة']
+    };
+    setClients([clientRecord, ...clients]);
+    setNewClientModal(false);
+    setNewClientForm({ name: '', contactPerson: '', phone: '', address: '', system: 'كاميرات مراقبة وشبكات', warrantyExpiry: '2027-09-15', devices: '' });
+  };
+
+  // حفظ الفاتورة (جديدة أو تعديل)
+  const handleSaveInvoice = (e) => {
+    e.preventDefault();
+    if (editingInvoice) {
+      setInvoices(invoices.map(inv => inv.id === editingInvoice.id ? editingInvoice : inv));
+      setEditingInvoice(null);
+    } else {
+      const finalInv = { ...invoiceForm, id: invoiceForm.id || ("INV-" + (1000 + invoices.length + 1)) };
+      setInvoices([finalInv, ...invoices]);
+      setCreatingInvoice(false);
+    }
+  };
+
+  // حفظ سند قبض جديد وتحديث الفاتورة ورصيد العميل
+  const handleSaveVoucher = (e) => {
+    e.preventDefault();
+    if (!voucherForm.amount || Number(voucherForm.amount) <= 0) return;
+    const amt = Number(voucherForm.amount);
+    const newVoucher = {
+      id: "RV-" + (200 + vouchers.length + 1),
+      invoiceId: creatingVoucher.id,
+      client: creatingVoucher.client,
+      amount: amt,
+      date: '2026-09-15',
+      method: voucherForm.method,
+      notes: voucherForm.notes || 'سداد دفعة من الفاتورة'
+    };
+    setVouchers([newVoucher, ...vouchers]);
+
+    // تحديث المدفوع في الفاتورة
+    setInvoices(invoices.map(inv => {
+      if (inv.id === creatingVoucher.id) {
+        return { ...inv, paid: (inv.paid || 0) + amt };
+      }
+      return inv;
+    }));
+
+    // تحديث رصيد العميل
+    setClients(clients.map(c => {
+      if (c.name === creatingVoucher.client) {
+        return { ...c, balance: Math.max(0, (c.balance || 0) - amt) };
+      }
+      return c;
+    }));
+
+    setCreatingVoucher(null);
+    setVoucherForm({ amount: '', method: 'نقداً', notes: '' });
+  };
+
+  // حفظ تذكرة صيانة
+  const handleSaveTicket = (e) => {
+    e.preventDefault();
+    if (!ticketForm.client || !ticketForm.issue) return;
+    const newTick = {
+      id: "TK-" + (500 + tickets.length + 1),
+      client: ticketForm.client,
+      issue: ticketForm.issue,
+      priority: ticketForm.priority,
+      engineer: ticketForm.engineer,
+      visitDate: ticketForm.visitDate,
+      status: 'جديدة'
+    };
+    setTickets([newTick, ...tickets]);
+    setCreatingTicket(false);
+    setTicketForm({ client: '', issue: '', priority: 'عالية', engineer: 'م. سامي الحمادي', visitDate: '2026-09-16' });
+  };
+
+  // تحديث حالة التذكرة بضغطة زر
+  const updateTicketStatus = (ticketId, nextStatus) => {
+    setTickets(tickets.map(t => t.id === ticketId ? { ...t, status: nextStatus } : t));
+  };
+
+  const filteredClients = clients.filter(c => {
+    const matchSearch = c.name.includes(searchTerm) || c.phone.includes(searchTerm) || c.contactPerson.includes(searchTerm);
+    const matchFilter = filterSystem === 'all' || c.system.includes(filterSystem);
+    return matchSearch && matchFilter;
+  });
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans" dir="rtl">
-      {/* الرأس */}
-      <header className="bg-slate-800 border-b border-slate-700 px-4 py-3 sticky top-0 z-30 shadow-md">
+      {/* الشريط العلوي الفخم لشركة OpenTik */}
+      <header className="bg-slate-800/95 backdrop-blur border-b border-slate-700/80 px-4 py-3 sticky top-0 z-30 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-xl text-white shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-cyan-500 flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/20">
               OP
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white leading-tight">OpenTik للأنظمة الذكية</h1>
-              <p className="text-xs text-slate-400">إدارة الفواتير والحسابات</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base font-extrabold text-white tracking-wide">OpenTik للأنظمة الذكية</h1>
+                <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded font-mono">v1.2.0</span>
+              </div>
+              <p className="text-[11px] text-slate-400">إدارة العملاء والحسابات والعمليات الميدانية</p>
             </div>
           </div>
-          <span className="text-xs px-2.5 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full">
-            نظام الفوترة نشط
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full font-medium flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              النظام متصل
+            </span>
+          </div>
         </div>
+
+        {/* شريط الأقسام والتنقل الرئيسي */}
+        <nav className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-none text-xs font-semibold">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'dashboard' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
+          >
+            <Shield className="w-4 h-4" /> لوحة التحكم
+          </button>
+          <button 
+            onClick={() => setActiveTab('clients')}
+            className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'clients' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
+          >
+            <Users className="w-4 h-4" /> إدارة العملاء ({clients.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('invoices')}
+            className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'invoices' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
+          >
+            <FileText className="w-4 h-4" /> الحسابات والفواتير ({invoices.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('vouchers')}
+            className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'vouchers' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
+          >
+            <DollarSign className="w-4 h-4" /> سندات القبض ({vouchers.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('tickets')}
+            className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'tickets' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
+          >
+            <Wrench className="w-4 h-4" /> الدعم الفني ({tickets.length})
+          </button>
+          <button 
+            onClick={() => setActiveTab('packages')}
+            className={"px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shrink-0 " + (activeTab === 'packages' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30' : 'bg-slate-700/60 text-slate-300 hover:bg-slate-700')}
+          >
+            <Layers className="w-4 h-4" /> كتالوج الباقات
+          </button>
+        </nav>
       </header>
 
-      {/* قائمة الفواتير */}
-      <main className="p-4 max-w-5xl w-full mx-auto space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-400" /> فواتير التوريد وعقود التركيب
-          </h2>
-        </div>
+      {/* المحتوى الرئيسي */}
+      <main className="p-4 flex-1 max-w-6xl w-full mx-auto space-y-5">
+        
+        {/* ================= 1. تبويب لوحة التحكم (DASHBOARD) ================= */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-5">
+            {/* بطاقات المؤشرات المالية الرئيسية */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 shadow-sm">
+                <span className="text-xs text-slate-400 font-medium">إجمالي المبيعات والعقود</span>
+                <h3 className="text-xl font-black text-white mt-1">{"$" + totalSales.toLocaleString()}</h3>
+                <span className="text-[11px] text-blue-400 font-semibold mt-1 block">مشاريع منفذة</span>
+              </div>
+              <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 shadow-sm">
+                <span className="text-xs text-slate-400 font-medium">المبالغ المحصلة فعلياً</span>
+                <h3 className="text-xl font-black text-emerald-400 mt-1">{"$" + totalCollected.toLocaleString()}</h3>
+                <span className="text-[11px] text-emerald-400/90 font-semibold mt-1 block">{"نسبة التحصيل: " + collectionRate + "%"}</span>
+              </div>
+              <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 shadow-sm">
+                <span className="text-xs text-slate-400 font-medium">الديون المتبقية (ذمم)</span>
+                <h3 className="text-xl font-black text-rose-400 mt-1">{"$" + totalOutstanding.toLocaleString()}</h3>
+                <span className="text-[11px] text-rose-400/90 font-semibold mt-1 block">واجبة التحصيل</span>
+              </div>
+              <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 shadow-sm">
+                <span className="text-xs text-slate-400 font-medium">العملاء والمنشآت</span>
+                <h3 className="text-xl font-black text-cyan-400 mt-1">{clients.length}</h3>
+                <span className="text-[11px] text-cyan-400/90 font-semibold mt-1 block">تحت الضمان والخدمة</span>
+              </div>
+            </div>
 
-        <div className="grid gap-4">
-          {invoices.map(inv => {
-            const total = calculateTotal(inv.items);
-            const remaining = total - inv.paid;
-            return (
-              <div key={inv.id} className="bg-slate-800 p-4 rounded-xl border border-slate-700 space-y-3">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-700/60 pb-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">{inv.id}</span>
-                      <h3 className="font-bold text-white">{inv.client}</h3>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-1">الهاتف: {inv.phone} | التاريخ: {inv.date}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => handleEditClick(inv)}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs flex items-center gap-1 transition"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" /> تعديل الفاتورة
-                    </button>
-                    <button 
-                      onClick={() => setPreviewInvoice(inv)}
-                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs flex items-center gap-1 transition"
-                    >
-                      <Eye className="w-3.5 h-3.5" /> معاينة
-                    </button>
-                    <button 
-                      onClick={() => handleExportPDF(inv)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs flex items-center gap-1 transition"
-                    >
-                      <Download className="w-3.5 h-3.5" /> تحميل PDF
-                    </button>
-                  </div>
+            {/* مجالات شركة OpenTik الذكية */}
+            <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80">
+              <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-blue-400" /> توزيع أنظمة ومجالات OpenTik
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                <div className="p-3 bg-slate-900/70 rounded-xl border border-slate-700/50 flex flex-col items-center text-center">
+                  <div className="p-2 bg-blue-500/20 text-blue-400 rounded-lg mb-2"><Camera className="w-5 h-5" /></div>
+                  <span className="text-xs font-bold text-white">كاميرات المراقبة</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">IP & AI Security</span>
                 </div>
-
-                {/* تفاصيل المبالغ */}
-                <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-2.5 rounded-lg text-center">
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">الإجمالي</span>
-                    <span className="text-xs font-bold text-white font-mono">{"$" + total.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">المسدد</span>
-                    <span className="text-xs font-bold text-emerald-400 font-mono">{"$" + inv.paid.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">المتبقي</span>
-                    <span className="text-xs font-bold text-rose-400 font-mono">{"$" + remaining.toLocaleString()}</span>
-                  </div>
+                <div className="p-3 bg-slate-900/70 rounded-xl border border-slate-700/50 flex flex-col items-center text-center">
+                  <div className="p-2 bg-cyan-500/20 text-cyan-400 rounded-lg mb-2"><Wifi className="w-5 h-5" /></div>
+                  <span className="text-xs font-bold text-white">الشبكات والـ IT</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">PoE & WiFi 6</span>
                 </div>
-
-                {/* قالب الفاتورة المخفي المخصص لإنتاج ملف الـ PDF بجودة A4 */}
-                <div className="hidden">
-                  <div id={"printable-invoice-" + inv.id} className="p-8 bg-white text-slate-900 text-right font-sans" dir="rtl">
-                    <div className="flex justify-between items-center border-b-2 border-blue-600 pb-4 mb-6">
-                      <div>
-                        <h1 className="text-2xl font-black text-blue-700">OpenTik للأنظمة الذكية</h1>
-                        <p className="text-xs text-slate-600 mt-1">كاميرات مراقبة - شبكات - أنظمة أمان - طاقة بديلة</p>
-                      </div>
-                      <div className="text-left">
-                        <span className="text-xl font-bold text-slate-800">فاتورة توريد وتركيب</span>
-                        <p className="text-xs text-slate-500 font-mono mt-1">رقم الفاتورة: {inv.id}</p>
-                        <p className="text-xs text-slate-500 font-mono">التاريخ: {inv.date}</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-4 rounded-lg mb-6 border border-slate-200">
-                      <h3 className="text-sm font-bold text-slate-800 mb-1">بيانات العميل:</h3>
-                      <p className="text-sm font-semibold text-slate-700">الاسم: {inv.client}</p>
-                      <p className="text-xs text-slate-600">رقم الهاتف: {inv.phone}</p>
-                      <p className="text-xs text-slate-600">نوع النظام: {inv.system}</p>
-                    </div>
-
-                    <table className="w-full text-right border-collapse mb-6 text-sm">
-                      <thead>
-                        <tr className="bg-blue-600 text-white">
-                          <th className="p-2 border">#</th>
-                          <th className="p-2 border">البيان / الصنف</th>
-                          <th className="p-2 border text-center">الكمية</th>
-                          <th className="p-2 border text-center">سعر الوحدة ($)</th>
-                          <th className="p-2 border text-center">الإجمالي ($)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inv.items.map((item, idx) => (
-                          <tr key={idx} className="border-b border-slate-200">
-                            <td className="p-2 border text-center font-mono">{idx + 1}</td>
-                            <td className="p-2 border font-medium">{item.name}</td>
-                            <td className="p-2 border text-center font-mono">{item.qty}</td>
-                            <td className="p-2 border text-center font-mono">{"$" + item.price}</td>
-                            <td className="p-2 border text-center font-mono font-bold">{"$" + (item.qty * item.price)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="w-1/2 p-3 bg-slate-50 rounded border border-slate-200 text-xs">
-                        <span className="font-bold block mb-1">ملاحظات وشروط الضمان:</span>
-                        <p className="text-slate-600">{inv.notes || 'الضمان ساري بموجب الفاتورة الرسمية.'}</p>
-                      </div>
-                      <div className="w-1/3 space-y-1.5 text-sm">
-                        <div className="flex justify-between border-b pb-1">
-                          <span className="text-slate-600">إجمالي الفاتورة:</span>
-                          <span className="font-bold font-mono">{"$" + total}</span>
-                        </div>
-                        <div className="flex justify-between border-b pb-1">
-                          <span className="text-slate-600">المبلغ المسدد:</span>
-                          <span className="font-bold text-emerald-600 font-mono">{"$" + inv.paid}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-base pt-1">
-                          <span className="text-rose-600">المتبقي المطلوب:</span>
-                          <span className="text-rose-600 font-mono">{"$" + remaining}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t pt-4 text-center text-xs text-slate-400">
-                      شكراً لتعاملكم مع OpenTik للأنظمة الذكية | خدمات التركيب والدعم الفني المعتمد
-                    </div>
-                  </div>
+                <div className="p-3 bg-slate-900/70 rounded-xl border border-slate-700/50 flex flex-col items-center text-center">
+                  <div className="p-2 bg-amber-500/20 text-amber-400 rounded-lg mb-2"><Sun className="w-5 h-5" /></div>
+                  <span className="text-xs font-bold text-white">الطاقة البديلة</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">Deye & Lithium</span>
+                </div>
+                <div className="p-3 bg-slate-900/70 rounded-xl border border-slate-700/50 flex flex-col items-center text-center">
+                  <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg mb-2"><Shield className="w-5 h-5" /></div>
+                  <span className="text-xs font-bold text-white">أنظمة الأمان</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">بصمة وإنذار سرقة</span>
+                </div>
+                <div className="p-3 bg-slate-900/70 rounded-xl border border-slate-700/50 flex flex-col items-center text-center col-span-2 sm:col-span-1">
+                  <div className="p-2 bg-purple-500/20 text-purple-400 rounded-lg mb-2"><Award className="w-5 h-5" /></div>
+                  <span className="text-xs font-bold text-white">عقود الصيانة SLA</span>
+                  <span className="text-[10px] text-slate-400 mt-0.5">دعم دوري وميداني</span>
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            {/* بطاقات العمليات العاجلة */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {/* الدعم الفني العاجل */}
+              <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-amber-400" /> تذاكر وبلاغات الصيانة المفتوحة
+                  </h3>
+                  <button onClick={() => setActiveTab('tickets')} className="text-[11px] text-blue-400 hover:underline">عرض الكل</button>
+                </div>
+                <div className="space-y-2">
+                  {tickets.map(t => (
+                    <div key={t.id} className="p-3 bg-slate-900/60 rounded-lg border border-slate-700/40 flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-white">{t.client}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 bg-rose-500/20 text-rose-400 rounded font-semibold">{t.priority}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 mt-1">{t.issue}</p>
+                        <p className="text-[10px] text-slate-400">المهندس: {t.engineer} | موعد الزيارة: {t.visitDate}</p>
+                      </div>
+                      <span className="text-[10px] px-2 py-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {t.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* آخر الفواتير */}
+              <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-emerald-400" /> آخر فواتير التوريد والتركيب
+                  </h3>
+                  <button onClick={() => setActiveTab('invoices')} className="text-[11px] text-blue-400 hover:underline">عرض الفواتير</button>
+                </div>
+                <div className="space-y-2">
+                  {invoices.map(inv => {
+                    const finTotal = calculateFinalTotal(inv);
+                    const rem = finTotal - (inv.paid || 0);
+                    return (
+                      <div key={inv.id} className="p-3 bg-slate-900/60 rounded-lg border border-slate-700/40 flex justify-between items-center">
+                        <div>
+                          <span className="font-mono text-xs text-blue-400 font-bold ml-1">{inv.id}</span>
+                          <span className="text-xs font-bold text-white">{inv.client}</span>
+                          <p className="text-[10px] text-slate-400 mt-0.5">النظام: {inv.system}</p>
+                        </div>
+                        <div className="text-left">
+                          <span className="text-xs font-bold text-emerald-400 block font-mono">{"$" + finTotal}</span>
+                          <span className={"text-[10px] font-semibold " + (rem > 0 ? 'text-rose-400' : 'text-emerald-400')}>
+                            {rem > 0 ? ("متبقي: $" + rem) : 'خالص بالكامل'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= 2. تبويب إدارة العملاء المتقدمة (CRM) ================= */}
+        {activeTab === 'clients' && (
+          <div className="space-y-4">
+            {/* شريط الإجراءات والبحث والفلترة */}
+            <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700 flex flex-col sm:flex-row justify-between gap-3">
+              <div className="flex flex-1 gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute right-3 top-3 text-slate-400" />
+                  <input 
+                    type="text" 
+                    placeholder="ابحث باسم المنشأة، الشخص، أو الهاتف..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg pr-9 pl-3 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <select 
+                  value={filterSystem} 
+                  onChange={(e) => setFilterSystem(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none"
+                >
+                  <option value="all">جميع الأنظمة</option>
+                  <option value="كاميرات">كاميرات مراقبة</option>
+                  <option value="طاقة">طاقة بديلة</option>
+                  <option value="أمان">أنظمة أمان</option>
+                  <option value="شبكات">شبكات</option>
+                </select>
+              </div>
+
+              <button 
+                onClick={() => setNewClientModal(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 shadow"
+              >
+                <Plus className="w-4 h-4" /> إضافة عميل جديد
+              </button>
+            </div>
+
+            {/* بطاقات العملاء مع تفاصيل المنظومات */}
+            <div className="grid gap-3">
+              {filteredClients.map(c => (
+                <div key={c.id} className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 hover:border-slate-600 transition">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 pb-3 border-b border-slate-700/60">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">{c.id}</span>
+                        <h4 className="text-sm font-bold text-white">{c.name}</h4>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                          الضمان {c.warrantyStatus}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        المسؤول: <span className="text-slate-200">{c.contactPerson}</span> | هاتف: <span className="text-slate-200 font-mono">{c.phone}</span> | العنوان: {c.address}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setViewClientDetails(c)}
+                        className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 transition"
+                      >
+                        <Eye className="w-3.5 h-3.5 text-cyan-400" /> الملف الشامل والأجهزة
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 flex flex-wrap justify-between items-center text-xs gap-2">
+                    <div>
+                      <span className="text-slate-400">النظام المنفذ: </span>
+                      <span className="text-slate-200 font-semibold">{c.system}</span>
+                      <span className="text-slate-500 mr-3">| انتهاء الضمان: {c.warrantyExpiry}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400">الرصيد المتبقي: </span>
+                      <span className={"font-bold font-mono " + (c.balance > 0 ? 'text-rose-400' : 'text-emerald-400')}>
+                        {"$" + c.balance}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ================= 3. تبويب النظام المالي والفواتير (INVOICES) ================= */}
+        {activeTab === 'invoices' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700 flex flex-wrap justify-between items-center gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-white">فواتير التوريد والتركيب الرسمية</h3>
+                <p className="text-xs text-slate-400">إنشاء وتعديل الفواتير، حساب الضرائب، وتصدير PDF معتمد</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setInvoiceForm({
+                    id: "INV-" + (1000 + invoices.length + 1),
+                    client: clients[0] ? clients[0].name : '',
+                    phone: clients[0] ? clients[0].phone : '',
+                    system: 'كاميرات مراقبة وشبكات',
+                    date: '2026-09-15',
+                    items: [{ name: '', qty: 1, price: 0 }],
+                    taxRate: 0,
+                    discount: 0,
+                    paid: 0,
+                    notes: 'ضمان عام كامل مع الدعم الفني الدوري.'
+                  });
+                  setCreatingInvoice(true);
+                }}
+                className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-3.5 py-2 text-xs font-bold transition flex items-center gap-1.5 shadow"
+              >
+                <Plus className="w-4 h-4" /> إنشاء فاتورة جديدة
+              </button>
+            </div>
+
+            <div className="grid gap-3">
+              {invoices.map(inv => {
+                const finalTotal = calculateFinalTotal(inv);
+                const remaining = finalTotal - (inv.paid || 0);
+                return (
+                  <div key={inv.id} className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 space-y-3">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-700/60 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">{inv.id}</span>
+                          <h4 className="font-bold text-white">{inv.client}</h4>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          الهاتف: {inv.phone} | التاريخ: {inv.date} | المنظومة: {inv.system}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button 
+                          onClick={() => setEditingInvoice(JSON.parse(JSON.stringify(inv)))}
+                          className="px-2.5 py-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded-lg text-xs flex items-center gap-1"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" /> تعديل
+                        </button>
+                        <button 
+                          onClick={() => {
+                            setCreatingVoucher(inv);
+                            setVoucherForm({ amount: remaining > 0 ? remaining : '', method: 'نقداً', notes: 'سداد من فاتورة رقم ' + inv.id });
+                          }}
+                          className="px-2.5 py-1.5 bg-emerald-600/80 hover:bg-emerald-600 text-white rounded-lg text-xs flex items-center gap-1"
+                        >
+                          <DollarSign className="w-3.5 h-3.5" /> سند قبض
+                        </button>
+                        <button 
+                          onClick={() => setPreviewInvoice(inv)}
+                          className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs flex items-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> معاينة
+                        </button>
+                        <button 
+                          onClick={() => handleExportPDF("printable-invoice-" + inv.id, inv.id + "_" + inv.client)}
+                          className="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs flex items-center gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5" /> تحميل PDF
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* المبالغ والتفاصيل المالية */}
+                    <div className="grid grid-cols-3 gap-2 bg-slate-900/60 p-2.5 rounded-lg text-center text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">الإجمالي النهائي</span>
+                        <span className="font-bold text-white font-mono">{"$" + finalTotal.toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">المبلغ المقبوض</span>
+                        <span className="font-bold text-emerald-400 font-mono">{"$" + (inv.paid || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">الرصيد المتبقي</span>
+                        <span className={"font-bold font-mono " + (remaining > 0 ? 'text-rose-400' : 'text-emerald-400')}>
+                          {"$" + remaining.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* القالب الرسمي المخفي لتحويل الفاتورة إلى PDF بالختم والبيانات الرسمية */}
+                    <div className="hidden">
+                      <div id={"printable-invoice-" + inv.id} className="p-8 bg-white text-slate-900 text-right font-sans" dir="rtl">
+                        <div className="flex justify-between items-center border-b-2 border-blue-600 pb-4 mb-5">
+                          <div>
+                            <h1 className="text-2xl font-black text-blue-700">شركة OpenTik للأنظمة الذكية</h1>
+                            <p className="text-xs text-slate-600 mt-1">كاميرات مراقبة - شبكات - أنظمة أمان - طاقة شمسية بديلة - SLA</p>
+                            <p className="text-[11px] text-slate-500 font-mono mt-0.5">السجل التجاري: 10452 | الرقم الضريبي: 30048921</p>
+                          </div>
+                          <div className="text-left">
+                            <span className="text-xl font-bold text-slate-800 block">فاتورة ضريبية رسمية</span>
+                            <span className="text-xs text-slate-500 font-mono">رقم الفاتورة: {inv.id}</span>
+                            <p className="text-xs text-slate-500 font-mono">التاريخ: {inv.date}</p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg mb-5 border border-slate-200 text-xs">
+                          <div>
+                            <span className="font-bold text-slate-800 block mb-1">بيانات العميل:</span>
+                            <p className="font-semibold text-slate-700">الاسم: {inv.client}</p>
+                            <p className="text-slate-600">الهاتف: {inv.phone}</p>
+                            <p className="text-slate-600">المنظومة: {inv.system}</p>
+                          </div>
+                          <div className="text-left">
+                            <span className="font-bold text-slate-800 block mb-1">طرق الدفع والحسابات:</span>
+                            <p className="text-slate-600 font-mono">بنك الكريمي: 3001245678</p>
+                            <p className="text-slate-600 font-mono">بنك التضامن: 1024558</p>
+                            <p className="text-slate-600 font-mono">بنك القطيبي: 7789012</p>
+                          </div>
+                        </div>
+
+                        <table className="w-full text-right border-collapse mb-5 text-xs">
+                          <thead>
+                            <tr className="bg-blue-600 text-white">
+                              <th className="p-2 border">#</th>
+                              <th className="p-2 border">البيان / الأجهزة والخدمات</th>
+                              <th className="p-2 border text-center">الكمية</th>
+                              <th className="p-2 border text-center">سعر الوحدة ($)</th>
+                              <th className="p-2 border text-center">الإجمالي ($)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {inv.items.map((it, idx) => (
+                              <tr key={idx} className="border-b border-slate-200">
+                                <td className="p-2 border text-center font-mono">{idx + 1}</td>
+                                <td className="p-2 border font-medium">{it.name}</td>
+                                <td className="p-2 border text-center font-mono">{it.qty}</td>
+                                <td className="p-2 border text-center font-mono">{"$" + it.price}</td>
+                                <td className="p-2 border text-center font-mono font-bold">{"$" + (it.qty * it.price)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="w-1/2 p-3 bg-slate-50 rounded border border-slate-200 text-xs">
+                            <span className="font-bold block mb-1">ملاحظات وشروط الضمان:</span>
+                            <p className="text-slate-600 leading-relaxed">{inv.notes || 'الضمان ساري على الأجهزة المذكورة بموجب هذه الفاتورة الرسمية.'}</p>
+                          </div>
+                          <div className="w-1/3 space-y-1 text-xs">
+                            <div className="flex justify-between border-b pb-1">
+                              <span className="text-slate-600">المجموع الفرعي:</span>
+                              <span className="font-bold font-mono">{"$" + calculateSubtotal(inv.items)}</span>
+                            </div>
+                            {inv.discount > 0 && (
+                              <div className="flex justify-between border-b pb-1 text-emerald-600">
+                                <span>الخصم الممنوح:</span>
+                                <span className="font-bold font-mono">{"-$" + inv.discount}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between border-b pb-1 text-sm font-black">
+                              <span>الإجمالي المستحق:</span>
+                              <span className="text-blue-700 font-mono">{"$" + finalTotal}</span>
+                            </div>
+                            <div className="flex justify-between border-b pb-1 text-emerald-700">
+                              <span>المسدد بسندات قبض:</span>
+                              <span className="font-bold font-mono">{"$" + (inv.paid || 0)}</span>
+                            </div>
+                            <div className="flex justify-between pt-1 font-bold text-sm text-rose-600">
+                              <span>المتبقي المطلوب:</span>
+                              <span className="font-mono">{"$" + remaining}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* الختم والتوقيع الرسمي */}
+                        <div className="flex justify-between items-center pt-4 border-t border-slate-300 text-xs">
+                          <div className="text-center">
+                            <p className="text-slate-500 mb-6">توقيع المستلم والاعتماد</p>
+                            <p className="text-slate-400">....................................</p>
+                          </div>
+                          <div className="text-center">
+                            <div className="w-24 h-24 rounded-full border-2 border-dashed border-blue-700 flex flex-col items-center justify-center text-blue-700 font-bold p-2 rotate-[-12deg] shadow-sm">
+                              <span className="text-[10px]">شركة OpenTik</span>
+                              <span className="text-[12px] font-black">مـعـتـمـد</span>
+                              <span className="text-[8px]">القسم المالي</span>
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-slate-500 mb-6">الإدارة المالية لـ OpenTik</p>
+                            <p className="text-slate-400">....................................</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ================= 4. تبويب سندات القبض المالية (VOUCHERS) ================= */}
+        {activeTab === 'vouchers' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+              <div>
+                <h3 className="text-sm font-bold text-white">سندات القبض المالي المعتمدة</h3>
+                <p className="text-xs text-slate-400">سجل المدفوعات والتحصيلات الصادرة للعملاء</p>
+              </div>
+              <div className="text-left bg-slate-900/80 px-3 py-1.5 rounded-lg border border-slate-700">
+                <span className="text-[10px] text-slate-400 block">إجمالي المقبوضات</span>
+                <span className="text-sm font-black text-emerald-400 font-mono">{"$" + totalCollected.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              {vouchers.map(v => (
+                <div key={v.id} className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">{v.id}</span>
+                      <h4 className="font-bold text-white">{v.client}</h4>
+                      <span className="text-[10px] text-slate-400">مرتبط بفاتورة: {v.invoiceId}</span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-1">البيان: {v.notes} | طريقة الدفع: {v.method}</p>
+                    <span className="text-[10px] text-slate-500">التاريخ: {v.date}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-base font-black text-emerald-400 font-mono">{"$" + v.amount.toLocaleString()}</span>
+                    <button 
+                      onClick={() => handleExportPDF("printable-voucher-" + v.id, v.id + "_" + v.client)}
+                      className="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs flex items-center gap-1"
+                    >
+                      <Download className="w-3.5 h-3.5 text-emerald-400" /> سند PDF
+                    </button>
+                  </div>
+
+                  {/* قالب سند القبض للتحميل كـ PDF */}
+                  <div className="hidden">
+                    <div id={"printable-voucher-" + v.id} className="p-8 bg-white text-slate-900 text-right font-sans" dir="rtl">
+                      <div className="flex justify-between items-center border-b-2 border-emerald-600 pb-4 mb-6">
+                        <div>
+                          <h1 className="text-2xl font-black text-emerald-700">شركة OpenTik للأنظمة الذكية</h1>
+                          <p className="text-xs text-slate-600">سند قبض مالي معتمد</p>
+                        </div>
+                        <div className="text-left font-mono">
+                          <span className="text-lg font-bold text-slate-800 block">رقم السند: {v.id}</span>
+                          <span className="text-xs text-slate-500">التاريخ: {v.date}</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4 text-sm bg-slate-50 p-5 rounded-lg border border-slate-200 mb-6">
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-slate-600 font-bold">استلمنا من الأخ / السادة:</span>
+                          <span className="font-bold text-slate-900">{v.client}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-slate-600 font-bold">مبلغ وقدره:</span>
+                          <span className="font-black text-emerald-700 font-mono text-base">{"$" + v.amount}</span>
+                        </div>
+                        <div className="flex justify-between border-b pb-2">
+                          <span className="text-slate-600 font-bold">طريقة القبض:</span>
+                          <span className="font-medium text-slate-800">{v.method}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600 font-bold">وذلك عن (البيان):</span>
+                          <span className="text-slate-800">{v.notes} (فاتورة {v.invoiceId})</span>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-8 border-t border-slate-300 text-xs">
+                        <div className="text-center">
+                          <p className="text-slate-500 mb-6">توقيع المسلم</p>
+                          <p className="text-slate-400">........................</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="w-20 h-20 rounded-full border-2 border-dashed border-emerald-600 flex flex-col items-center justify-center text-emerald-700 font-bold rotate-[-10deg]">
+                            <span className="text-[9px]">OpenTik</span>
+                            <span className="text-[11px] font-black">مقبوض</span>
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-slate-500 mb-6">أمين الصندوق / الإدارة المالية</p>
+                          <p className="text-slate-400">........................</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ================= 5. تبويب الدعم الفني والعمليات (TICKETS) ================= */}
+        {activeTab === 'tickets' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700 flex justify-between items-center">
+              <div>
+                <h3 className="text-sm font-bold text-white">إدارة بلاغات الصيانة والدعم الفني الميداني</h3>
+                <p className="text-xs text-slate-400">إسناد المهندسين، ومتابعة الزيارات الفنية وإغلاق التذاكر</p>
+              </div>
+              <button 
+                onClick={() => setCreatingTicket(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5"
+              >
+                <Plus className="w-4 h-4" /> فتح بلاغ صيانة
+              </button>
+            </div>
+
+            <div className="grid gap-3">
+              {tickets.map(t => (
+                <div key={t.id} className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 space-y-3">
+                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded">{t.id}</span>
+                        <h4 className="font-bold text-white">{t.client}</h4>
+                        <span className={"text-[10px] px-2 py-0.5 rounded font-semibold " + (t.priority === 'حرجة' || t.priority === 'عالية' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400')}>
+                          أهمية {t.priority}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-200 mt-1.5 font-medium">{t.issue}</p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {t.status === 'جديدة' && (
+                        <button 
+                          onClick={() => updateTicketStatus(t.id, 'قيد التنفيذ')}
+                          className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs transition"
+                        >
+                          بدء المعالجة
+                        </button>
+                      )}
+                      {t.status === 'قيد التنفيذ' && (
+                        <button 
+                          onClick={() => updateTicketStatus(t.id, 'تم الحل والإغلاق')}
+                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs transition flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> إغلاق التذكرة
+                        </button>
+                      )}
+                      <span className={"text-xs px-2.5 py-1 rounded font-semibold " + (t.status === 'تم الحل والإغلاق' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300')}>
+                        {t.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-700/50 flex justify-between items-center text-[11px] text-slate-400">
+                    <span>المهندس المسؤول: <strong className="text-slate-200">{t.engineer}</strong></span>
+                    <span>موعد الزيارة الميدانية: <strong className="text-slate-200">{t.visitDate}</strong></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ================= 6. تبويب كتالوج الحلول والباقات (PACKAGES) ================= */}
+        {activeTab === 'packages' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800/90 p-4 rounded-xl border border-slate-700">
+              <h3 className="text-sm font-bold text-white">كتالوج الباقات الجاهزة لشركة OpenTik</h3>
+              <p className="text-xs text-slate-400">استعرض الحلول المتكاملة أو قم بتحويل أي باقة مباشرة إلى فاتورة عميل بضغطة زر</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              {packages.map(pkg => (
+                <div key={pkg.id} className="bg-slate-800/90 p-4 rounded-xl border border-slate-700/80 flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] text-blue-400 font-semibold">{pkg.category}</span>
+                        <h4 className="text-sm font-bold text-white mt-0.5">{pkg.title}</h4>
+                        <span className="text-[11px] text-emerald-400 font-medium">الضمان: {pkg.warranty}</span>
+                      </div>
+                      <div className="text-left">
+                        <span className="text-lg font-black text-white font-mono">{"$" + pkg.price}</span>
+                        <span className="text-[10px] text-slate-400 block">شامل التوريد والتركيب</span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 space-y-1.5">
+                      <span className="text-[11px] font-bold text-slate-300 block mb-1">المكونات والأجهزة المتضمنة:</span>
+                      {pkg.items.map((it, idx) => (
+                        <div key={idx} className="flex justify-between text-xs text-slate-300">
+                          <span>• {it.name}</span>
+                          <span className="font-mono text-slate-400">x{it.qty}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => handleConvertPackageToInvoice(pkg)}
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white rounded-lg py-2 text-xs font-bold transition flex items-center justify-center gap-2 shadow"
+                  >
+                    <Send className="w-3.5 h-3.5" /> تحويل الباقة إلى فاتورة عميل فورية
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </main>
 
-      {/* نافذة منبثقة لتعديل الفاتورة (Edit Modal) */}
-      {editingInvoice && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-2xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+      {/* ================= النوافذ المنبثقة (MODALS) ================= */}
+
+      {/* 1. نافذة الملف الشامل للعميل مع الأجهزة المركبة */}
+      {viewClientDetails && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-lg w-full p-5 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700 pb-3">
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-blue-400" /> تعديل الفاتورة: {editingInvoice.id}
-              </h3>
-              <button onClick={() => setEditingInvoice(null)} className="text-slate-400 hover:text-white">
+              <div>
+                <h3 className="font-bold text-white text-base">{viewClientDetails.name}</h3>
+                <span className="text-xs text-blue-400 font-mono">{viewClientDetails.id}</span>
+              </div>
+              <button onClick={() => setViewClientDetails(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveInvoice} className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-2 bg-slate-900/60 p-3 rounded-lg border border-slate-700/50">
+                <div><span className="text-slate-400">المسؤول: </span><strong className="text-white">{viewClientDetails.contactPerson}</strong></div>
+                <div><span className="text-slate-400">الهاتف: </span><strong className="text-white font-mono">{viewClientDetails.phone}</strong></div>
+                <div className="col-span-2"><span className="text-slate-400">العنوان: </span><strong className="text-white">{viewClientDetails.address}</strong></div>
+                <div><span className="text-slate-400">تاريخ انتهاء الضمان: </span><strong className="text-emerald-400">{viewClientDetails.warrantyExpiry}</strong></div>
+                <div><span className="text-slate-400">الرصيد القائم: </span><strong className="text-rose-400 font-mono">{"$" + viewClientDetails.balance}</strong></div>
+              </div>
+
+              <div>
+                <h4 className="font-bold text-slate-200 mb-2 flex items-center gap-1.5">
+                  <Shield className="w-4 h-4 text-blue-400" /> قائمة الأجهزة والمنظومات المركبة في الموقع:
+                </h4>
+                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-700/50 space-y-1.5">
+                  {viewClientDetails.installedDevices.map((dev, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-slate-300">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{dev}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-slate-700 flex justify-end">
+              <button onClick={() => setViewClientDetails(null)} className="px-4 py-2 bg-slate-700 text-white rounded-lg text-xs font-bold">
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. نافذة إضافة عميل جديد */}
+      {newClientModal && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-md w-full p-5 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+              <h3 className="font-bold text-white text-sm">إضافة عميل ومنشأة جديدة لـ OpenTik</h3>
+              <button onClick={() => setNewClientModal(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveNewClient} className="space-y-3 text-xs">
+              <input 
+                type="text" 
+                placeholder="اسم المنشأة أو الشركة" 
+                value={newClientForm.name} 
+                onChange={e => setNewClientForm({...newClientForm, name: e.target.value})}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+                required 
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input 
+                  type="text" 
+                  placeholder="اسم الشخص المسؤول" 
+                  value={newClientForm.contactPerson} 
+                  onChange={e => setNewClientForm({...newClientForm, contactPerson: e.target.value})}
+                  className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+                />
+                <input 
+                  type="text" 
+                  placeholder="رقم الهاتف" 
+                  value={newClientForm.phone} 
+                  onChange={e => setNewClientForm({...newClientForm, phone: e.target.value})}
+                  className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+                  required 
+                />
+              </div>
+              <input 
+                type="text" 
+                placeholder="العنوان (مثال: شارع حدة - صنعاء)" 
+                value={newClientForm.address} 
+                onChange={e => setNewClientForm({...newClientForm, address: e.target.value})}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+              />
+              <select 
+                value={newClientForm.system} 
+                onChange={e => setNewClientForm({...newClientForm, system: e.target.value})}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+              >
+                <option value="كاميرات مراقبة وشبكات">كاميرات مراقبة وشبكات</option>
+                <option value="طاقة بديلة وانفرتر">طاقة بديلة وانفرتر</option>
+                <option value="أنظمة إنذار وتحكم بالدخول">أنظمة إنذار وتحكم بالدخول</option>
+                <option value="شبكات مؤسسية وسيرفرات">شبكات مؤسسية وسيرفرات</option>
+              </select>
+              <textarea 
+                placeholder="الأجهزة المركبة (اكتب كل جهاز في سطر)" 
+                value={newClientForm.devices} 
+                onChange={e => setNewClientForm({...newClientForm, devices: e.target.value})}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white h-20"
+              />
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
+                <button type="button" onClick={() => setNewClientModal(false)} className="px-3 py-1.5 bg-slate-700 text-white rounded-lg">إلغاء</button>
+                <button type="submit" className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-bold">حفظ العميل</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. نافذة إنشاء / تعديل فاتورة مع البنود والضرائب */}
+      {(creatingInvoice || editingInvoice) && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-2xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+              <h3 className="font-bold text-white text-sm">
+                {editingInvoice ? ("تعديل الفاتورة: " + editingInvoice.id) : "إنشاء فاتورة توريد وتركيب جديدة"}
+              </h3>
+              <button onClick={() => { setCreatingInvoice(false); setEditingInvoice(null); }} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveInvoice} className="space-y-3 text-xs">
+              {/* بيانات العميل في الفاتورة */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div>
-                  <label className="text-slate-300 block mb-1">اسم العميل</label>
+                  <label className="text-slate-400 block mb-1">العميل</label>
                   <input 
                     type="text" 
-                    value={editingInvoice.client}
-                    onChange={(e) => setEditingInvoice({...editingInvoice, client: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                    value={editingInvoice ? editingInvoice.client : invoiceForm.client}
+                    onChange={e => editingInvoice ? setEditingInvoice({...editingInvoice, client: e.target.value}) : setInvoiceForm({...invoiceForm, client: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+                    required 
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 block mb-1">رقم الهاتف</label>
+                  <label className="text-slate-400 block mb-1">الهاتف</label>
                   <input 
                     type="text" 
-                    value={editingInvoice.phone}
-                    onChange={(e) => setEditingInvoice({...editingInvoice, phone: e.target.value})}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                    value={editingInvoice ? editingInvoice.phone : invoiceForm.phone}
+                    onChange={e => editingInvoice ? setEditingInvoice({...editingInvoice, phone: e.target.value}) : setInvoiceForm({...invoiceForm, phone: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">المنظومة</label>
+                  <input 
+                    type="text" 
+                    value={editingInvoice ? editingInvoice.system : invoiceForm.system}
+                    onChange={e => editingInvoice ? setEditingInvoice({...editingInvoice, system: e.target.value}) : setInvoiceForm({...invoiceForm, system: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
                   />
                 </div>
               </div>
 
-              {/* جدول بنود الفاتورة للتعديل */}
+              {/* جدول بنود الفاتورة والأسعار */}
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <label className="text-slate-300 font-bold">بنود الفاتورة والكميات</label>
+                  <span className="font-bold text-slate-200">الأصناف والأجهزة والخدمات:</span>
                   <button 
                     type="button" 
-                    onClick={handleAddItem}
+                    onClick={() => {
+                      if (editingInvoice) {
+                        setEditingInvoice({ ...editingInvoice, items: [...editingInvoice.items, { name: '', qty: 1, price: 0 }] });
+                      } else {
+                        setInvoiceForm({ ...invoiceForm, items: [...invoiceForm.items, { name: '', qty: 1, price: 0 }] });
+                      }
+                    }}
                     className="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-[11px] flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" /> إضافة بند
                   </button>
                 </div>
+
                 <div className="space-y-2">
-                  {editingInvoice.items.map((item, idx) => (
-                    <div key={idx} className="flex items-center gap-2 bg-slate-900/60 p-2 rounded border border-slate-700">
+                  {(editingInvoice ? editingInvoice.items : invoiceForm.items).map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-slate-900/60 p-2 rounded-lg border border-slate-700">
                       <input 
                         type="text" 
-                        placeholder="اسم الصنف / الخدمة"
+                        placeholder="اسم الصنف أو الخدمة الميدانية" 
                         value={item.name}
-                        onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
-                        className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-xs"
+                        onChange={e => {
+                          const updated = [...(editingInvoice ? editingInvoice.items : invoiceForm.items)];
+                          updated[idx].name = e.target.value;
+                          editingInvoice ? setEditingInvoice({...editingInvoice, items: updated}) : setInvoiceForm({...invoiceForm, items: updated});
+                        }}
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-white" 
+                        required 
                       />
                       <input 
                         type="number" 
-                        placeholder="الكمية"
+                        placeholder="الكمية" 
                         value={item.qty}
-                        onChange={(e) => handleItemChange(idx, 'qty', e.target.value)}
-                        className="w-16 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-xs text-center"
+                        onChange={e => {
+                          const updated = [...(editingInvoice ? editingInvoice.items : invoiceForm.items)];
+                          updated[idx].qty = Number(e.target.value);
+                          editingInvoice ? setEditingInvoice({...editingInvoice, items: updated}) : setInvoiceForm({...invoiceForm, items: updated});
+                        }}
+                        className="w-16 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-center font-mono" 
                       />
                       <input 
                         type="number" 
-                        placeholder="السعر"
+                        placeholder="السعر ($)" 
                         value={item.price}
-                        onChange={(e) => handleItemChange(idx, 'price', e.target.value)}
-                        className="w-20 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-xs text-center"
+                        onChange={e => {
+                          const updated = [...(editingInvoice ? editingInvoice.items : invoiceForm.items)];
+                          updated[idx].price = Number(e.target.value);
+                          editingInvoice ? setEditingInvoice({...editingInvoice, items: updated}) : setInvoiceForm({...invoiceForm, items: updated});
+                        }}
+                        className="w-20 bg-slate-800 border border-slate-700 rounded p-1.5 text-white text-center font-mono" 
                       />
                       <button 
                         type="button" 
-                        onClick={() => handleRemoveItem(idx)}
-                        className="text-rose-400 hover:text-rose-300 p-1"
+                        onClick={() => {
+                          const list = (editingInvoice ? editingInvoice.items : invoiceForm.items);
+                          if (list.length > 1) {
+                            const updated = list.filter((_, i) => i !== idx);
+                            editingInvoice ? setEditingInvoice({...editingInvoice, items: updated}) : setInvoiceForm({...invoiceForm, items: updated});
+                          }
+                        }}
+                        className="text-rose-400 p-1"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -353,76 +1296,199 @@ export default function App() {
                 </div>
               </div>
 
-              {/* تعديل المبلغ المدفوع */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
+              {/* الضرائب والخصومات */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2">
                 <div>
-                  <label className="text-slate-300 block mb-1">المبلغ المسدد ($)</label>
+                  <label className="text-slate-400 block mb-1">الخصم الممنوح ($)</label>
                   <input 
                     type="number" 
-                    value={editingInvoice.paid}
-                    onChange={(e) => setEditingInvoice({...editingInvoice, paid: Number(e.target.value)})}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono"
+                    value={editingInvoice ? editingInvoice.discount : invoiceForm.discount}
+                    onChange={e => editingInvoice ? setEditingInvoice({...editingInvoice, discount: Number(e.target.value)}) : setInvoiceForm({...invoiceForm, discount: Number(e.target.value)})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono" 
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 block mb-1">الإجمالي الجديد المحسوب</label>
-                  <div className="w-full bg-slate-900/50 border border-slate-700 rounded-lg p-2 text-emerald-400 font-bold font-mono">
-                    {"$" + calculateTotal(editingInvoice.items)}
+                  <label className="text-slate-400 block mb-1">المبلغ المسدد مقدماً ($)</label>
+                  <input 
+                    type="number" 
+                    value={editingInvoice ? editingInvoice.paid : invoiceForm.paid}
+                    onChange={e => editingInvoice ? setEditingInvoice({...editingInvoice, paid: Number(e.target.value)}) : setInvoiceForm({...invoiceForm, paid: Number(e.target.value)})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono" 
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="text-slate-400 block mb-1">الإجمالي النهائي المحسوب</label>
+                  <div className="bg-slate-900 border border-slate-700 rounded-lg p-2 text-emerald-400 font-bold font-mono">
+                    {"$" + calculateFinalTotal(editingInvoice || invoiceForm)}
                   </div>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-700">
-                <button 
-                  type="button" 
-                  onClick={() => setEditingInvoice(null)}
-                  className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg text-xs font-bold"
-                >
-                  إلغاء
-                </button>
-                <button 
-                  type="submit" 
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
-                >
-                  <CheckCircle className="w-4 h-4" /> حفظ التغييرات
-                </button>
+                <button type="button" onClick={() => { setCreatingInvoice(false); setEditingInvoice(null); }} className="px-3 py-1.5 bg-slate-700 text-white rounded-lg">إلغاء</button>
+                <button type="submit" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold">حفظ الفاتورة</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* نافذة المعاينة السريعة */}
-      {previewInvoice && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-xl w-full p-5 space-y-4">
+      {/* 4. نافذة إصدار سند قبض مالي */}
+      {creatingVoucher && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-sm w-full p-5 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-700 pb-2">
-              <h3 className="font-bold text-white">معاينة الفاتورة: {previewInvoice.id}</h3>
+              <h3 className="font-bold text-white text-sm">إصدار سند قبض مالي</h3>
+              <button onClick={() => setCreatingVoucher(null)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveVoucher} className="space-y-3 text-xs">
+              <div className="bg-slate-900/60 p-2.5 rounded-lg border border-slate-700/50">
+                <span className="text-slate-400 block">العميل:</span>
+                <strong className="text-white block mt-0.5">{creatingVoucher.client}</strong>
+                <span className="text-[10px] text-blue-400">مرتبط بالفاتورة: {creatingVoucher.id}</span>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1">المبلغ المقبوض ($)</label>
+                <input 
+                  type="number" 
+                  value={voucherForm.amount} 
+                  onChange={e => setVoucherForm({...voucherForm, amount: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white font-mono text-sm" 
+                  required 
+                />
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1">طريقة الدفع</label>
+                <select 
+                  value={voucherForm.method} 
+                  onChange={e => setVoucherForm({...voucherForm, method: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                >
+                  <option value="نقداً">نقداً</option>
+                  <option value="تحويل بنكي">تحويل بنكي (الكريمي / التضامن)</option>
+                  <option value="شيك مصرفي">شيك مصرفي</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1">البيان / ملاحظات السند</label>
+                <input 
+                  type="text" 
+                  value={voucherForm.notes} 
+                  onChange={e => setVoucherForm({...voucherForm, notes: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
+                <button type="button" onClick={() => setCreatingVoucher(null)} className="px-3 py-1.5 bg-slate-700 text-white rounded-lg">إلغاء</button>
+                <button type="submit" className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold">تأكيد وإصدار السند</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. نافذة إنشاء بلاغ صيانة / دعم فني */}
+      {creatingTicket && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-sm w-full p-5 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+              <h3 className="font-bold text-white text-sm">فتح بلاغ صيانة ودعم فني</h3>
+              <button onClick={() => setCreatingTicket(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSaveTicket} className="space-y-3 text-xs">
+              <div>
+                <label className="text-slate-300 block mb-1">العميل</label>
+                <select 
+                  value={ticketForm.client} 
+                  onChange={e => setTicketForm({...ticketForm, client: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                  required
+                >
+                  <option value="">اختر العميل...</option>
+                  {clients.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-slate-300 block mb-1">وصف العطل أو المشكلة</label>
+                <textarea 
+                  value={ticketForm.issue} 
+                  onChange={e => setTicketForm({...ticketForm, issue: e.target.value})}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white h-16" 
+                  required 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-slate-300 block mb-1">مستوى الأهمية</label>
+                  <select 
+                    value={ticketForm.priority} 
+                    onChange={e => setTicketForm({...ticketForm, priority: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
+                  >
+                    <option value="حرجة">حرجة</option>
+                    <option value="عالية">عالية</option>
+                    <option value="متوسطة">متوسطة</option>
+                    <option value="عادية">عادية</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-slate-300 block mb-1">المهندس المسند إليه</label>
+                  <input 
+                    type="text" 
+                    value={ticketForm.engineer} 
+                    onChange={e => setTicketForm({...ticketForm, engineer: e.target.value})}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white" 
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
+                <button type="button" onClick={() => setCreatingTicket(false)} className="px-3 py-1.5 bg-slate-700 text-white rounded-lg">إلغاء</button>
+                <button type="submit" className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold">تسجيل البلاغ</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. نافذة المعاينة السريعة للفاتورة */}
+      {previewInvoice && (
+        <div className="fixed inset-0 bg-black/75 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-slate-800 rounded-xl border border-slate-700 max-w-lg w-full p-5 space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-700 pb-2">
+              <h3 className="font-bold text-white text-sm">معاينة الفاتورة: {previewInvoice.id}</h3>
               <button onClick={() => setPreviewInvoice(null)} className="text-slate-400 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="space-y-2 text-xs">
-              <p><strong className="text-slate-400">العميل:</strong> {previewInvoice.client}</p>
-              <p><strong className="text-slate-400">الهاتف:</strong> {previewInvoice.phone}</p>
-              <div className="bg-slate-900 p-3 rounded-lg space-y-1">
+              <p><strong className="text-slate-400">العميل: </strong>{previewInvoice.client}</p>
+              <p><strong className="text-slate-400">المنظومة: </strong>{previewInvoice.system}</p>
+              <div className="bg-slate-900 p-3 rounded-lg space-y-1.5">
                 {previewInvoice.items.map((it, i) => (
-                  <div key={i} className="flex justify-between">
+                  <div key={i} className="flex justify-between border-b border-slate-800 pb-1">
                     <span>{it.name} (x{it.qty})</span>
-                    <span className="font-mono">{"$" + (it.qty * it.price)}</span>
+                    <span className="font-mono text-emerald-400">{"$" + (it.qty * it.price)}</span>
                   </div>
                 ))}
+                <div className="flex justify-between pt-1 font-bold text-sm">
+                  <span>الإجمالي:</span>
+                  <span className="font-mono text-white">{"$" + calculateFinalTotal(previewInvoice)}</span>
+                </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-700">
               <button 
                 onClick={() => {
-                  handleExportPDF(previewInvoice);
+                  handleExportPDF("printable-invoice-" + previewInvoice.id, previewInvoice.id + "_" + previewInvoice.client);
                   setPreviewInvoice(null);
-                }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1"
+                }} 
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5"
               >
-                <Download className="w-3.5 h-3.5" /> تنزيل الفاتورة PDF
+                <Download className="w-3.5 h-3.5" /> تحميل الفاتورة الرسمية PDF
               </button>
             </div>
           </div>
